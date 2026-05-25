@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "crates/meowisp-core",
+  "crates/meowisp-app",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "GPL-2.0"
+authors = ["MeowKJ"]
+repository = "https://github.com/MeowKJ/meow-wch-isp"
+homepage = "https://github.com/MeowKJ/meow-wch-isp"

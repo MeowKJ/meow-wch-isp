@@ -1,0 +1,19 @@
+[project]
+name = "Example WCH firmware project"
+
+[target]
+chip = "CH592"
+transport = "usb"
+
+[firmware]
+path = "firmware.bin"
+format = "bin"
+verify = true
+reset_after_flash = true
+
+[config]
+mode = "check"
+
+[config.bits]
+CFG_BOOT_EN = true
+CFG_DEBUG_EN = true
