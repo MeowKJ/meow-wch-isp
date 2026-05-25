@@ -29,6 +29,18 @@ impl ChipFamily {
         }
         Ok(())
     }
+
+    pub const fn support_usb(&self) -> Option<bool> {
+        self.support_usb
+    }
+
+    pub const fn support_serial(&self) -> Option<bool> {
+        self.support_serial
+    }
+
+    pub const fn support_net(&self) -> Option<bool> {
+        self.support_net
+    }
 }
 
 /// Represents an MCU chip
@@ -80,6 +92,22 @@ impl Chip {
         }
         Ok(())
     }
+
+    pub fn alt_chip_ids(&self) -> &[u8] {
+        &self.alt_chip_ids
+    }
+
+    pub const fn support_usb(&self) -> Option<bool> {
+        self.support_usb
+    }
+
+    pub const fn support_serial(&self) -> Option<bool> {
+        self.support_serial
+    }
+
+    pub const fn support_net(&self) -> Option<bool> {
+        self.support_net
+    }
 }
 
 /// A u32 config register, with reset values.
@@ -110,6 +138,10 @@ impl ConfigRegister {
             field.validate()?;
         }
         Ok(())
+    }
+
+    pub fn description(&self) -> &str {
+        &self.description
     }
 }
 

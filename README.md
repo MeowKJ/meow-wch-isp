@@ -48,6 +48,8 @@ CLI:
 ```bash
 cargo run --bin meowisp -- doctor
 cargo run --bin meowisp -- probe
+cargo run --bin meowisp -- catalog --json
+cargo run --bin meowisp -- ai catalog --json
 cargo run --bin meowisp -- info
 cargo run --bin meowisp -- flash --file firmware.bin
 cargo run --bin meowisp -- verify --file firmware.bin

@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser, Subcommand};
-use meowisp_core::{isp, online, permission};
+use meowisp_core::{catalog, isp, online, permission};
 use png::{BlendOp, ColorType, DisposeOp, FrameControl, Transformations};
 use rfd::FileDialog;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
@@ -86,6 +86,14 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum CliCommand {
     Doctor,
+    Catalog {
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
+    Ai {
+        #[command(subcommand)]
+        command: AiCommand,
+    },
     Probe,
     Info,
     Flash {
@@ -114,6 +122,14 @@ enum CliCommand {
     },
     InstallUdev,
     RemoveUdev,
+}
+
+#[derive(Subcommand, Debug)]
+enum AiCommand {
+    Catalog {
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -178,6 +194,14 @@ fn run_cli(cli: Cli) -> Result<()> {
         CliCommand::Doctor => {
             print_doctor();
         }
+        CliCommand::Catalog { json } => {
+            print_catalog(json)?;
+        }
+        CliCommand::Ai { ref command } => match command {
+            AiCommand::Catalog { json } => {
+                print_catalog(*json)?;
+            }
+        },
         CliCommand::Probe => {
             if cli_uses_serial(&cli) {
                 let ports = SerialTransport::scan_ports().context("failed to scan serial ports")?;
@@ -356,6 +380,31 @@ fn run_cli(cli: Cli) -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn print_catalog(json: bool) -> Result<()> {
+    if json {
+        println!("{}", catalog::catalog_json_pretty()?);
+        return Ok(());
+    }
+
+    let catalog = catalog::load_catalog().context("failed to load device catalog")?;
+    println!(
+        "Device catalog: {} families, {} variants ({})",
+        catalog.family_count, catalog.variant_count, catalog.source
+    );
+    for family in catalog.families {
+        println!(
+            "- {} [{}]: {} variants, usb={:?}, serial={:?}, config_registers={}",
+            family.name,
+            family.device_type_hex,
+            family.variants.len(),
+            family.transports.usb,
+            family.transports.serial,
+            family.config_registers.len()
+        );
+    }
     Ok(())
 }
 

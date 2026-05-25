@@ -17,6 +17,7 @@ core operations from `meowisp-core`.
 
 ```bash
 meowisp ai doctor --json
+meowisp ai catalog --json
 meowisp ai probe --json
 meowisp ai info --json
 meowisp ai flash --file firmware.bin --verify --reset --json
@@ -26,6 +27,34 @@ meowisp ai erase --region data --json
 meowisp ai config read --json
 meowisp ai config schema --json
 meowisp ai config write --set CFG_BOOT_EN=1 --set CFG_DEBUG_EN=1 --json
+```
+
+Catalog response:
+
+```json
+{
+  "source": "vendor-wchisp/devices",
+  "family_count": 16,
+  "variant_count": 85,
+  "families": [
+    {
+      "name": "CH59x Series",
+      "device_type_hex": "0x22",
+      "transports": {
+        "usb": "supported",
+        "serial": "supported",
+        "net": "unsupported"
+      },
+      "variants": [
+        {
+          "name": "CH592",
+          "chip_id_hex": "0x92",
+          "memory_regions": []
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ## JSON Shapes
