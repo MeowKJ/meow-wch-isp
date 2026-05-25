@@ -1,23 +1,24 @@
 import { ListView, ScrollView } from "std-widgets.slint";
 
-component ActionButton inherits Rectangle {
+component PrimaryButton inherits Rectangle {
     in property <string> label;
-    in property <brush> accent: #7d5f4b;
+    in property <brush> accent: #256f5a;
     in property <bool> enabled: true;
     callback clicked;
 
-    border-radius: 22px;
+    min-height: 38px;
+    border-radius: 6px;
     background: touch.pressed && root.enabled
-        ? root.accent.darker(0.18)
+        ? root.accent.darker(0.14)
         : touch.has-hover && root.enabled
             ? root.accent.darker(0.06)
             : root.accent;
-    opacity: root.enabled ? 1.0 : 0.38;
+    opacity: root.enabled ? 1.0 : 0.42;
     border-width: 1px;
     border-color: root.accent.darker(0.18);
 
     animate background { duration: 120ms; easing: ease; }
-    animate opacity { duration: 160ms; }
+    animate opacity { duration: 160ms; easing: ease; }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -27,34 +28,35 @@ component ActionButton inherits Rectangle {
 
     Text {
         text: root.label;
-        color: #fffaf4;
-        font-size: 17px;
-        font-weight: 900;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 700;
         horizontal-alignment: center;
         vertical-alignment: center;
+        overflow: elide;
     }
 }
 
-component MiniButton inherits Rectangle {
+component GhostButton inherits Rectangle {
     in property <string> label;
     in property <brush> accent: #ffffff;
-    in property <brush> text-color: #3d3026;
+    in property <brush> text-color: #334155;
     in property <bool> enabled: true;
     callback clicked;
 
-    height: 34px;
-    border-radius: 15px;
+    min-height: 34px;
+    border-radius: 6px;
     background: touch.pressed && root.enabled
         ? root.accent.darker(0.08)
         : touch.has-hover && root.enabled
             ? root.accent.darker(0.03)
             : root.accent;
-    opacity: root.enabled ? 1.0 : 0.38;
+    opacity: root.enabled ? 1.0 : 0.42;
     border-width: 1px;
-    border-color: root.accent.darker(0.16);
+    border-color: #d7dde5;
 
     animate background { duration: 120ms; easing: ease; }
-    animate opacity { duration: 160ms; }
+    animate opacity { duration: 160ms; easing: ease; }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -66,9 +68,149 @@ component MiniButton inherits Rectangle {
         text: root.label;
         color: root.text-color;
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 650;
         horizontal-alignment: center;
         vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component NavItem inherits Rectangle {
+    in property <string> icon;
+    in property <string> label;
+    in property <bool> active: false;
+    callback clicked;
+
+    height: 36px;
+    border-radius: 6px;
+    background: root.active ? #e9f4f0 : nav-touch.has-hover ? #f4f7f9 : transparent;
+    border-width: root.active ? 1px : 0px;
+    border-color: #c8ded6;
+
+    animate background { duration: 150ms; easing: ease; }
+
+    nav-touch := TouchArea {
+        clicked => { root.clicked(); }
+        mouse-cursor: pointer;
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 8px;
+
+        Text {
+            text: root.icon;
+            color: root.active ? #16614d : #64748b;
+            font-size: 14px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.label;
+            color: root.active ? #123f35 : #445365;
+            font-size: 13px;
+            font-weight: root.active ? 750 : 600;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+component Panel inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle: "";
+
+    border-radius: 8px;
+    background: #ffffff;
+    border-width: 1px;
+    border-color: #dde3ea;
+    clip: true;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        VerticalLayout {
+            spacing: 2px;
+
+            Text {
+                text: root.title;
+                color: #16202e;
+                font-size: 14px;
+                font-weight: 760;
+                overflow: elide;
+            }
+
+            if root.subtitle != "": Text {
+                text: root.subtitle;
+                color: #66758a;
+                font-size: 11px;
+                font-weight: 500;
+                overflow: elide;
+            }
+        }
+
+        @children
+    }
+}
+
+component Metric inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <brush> accent: #256f5a;
+
+    height: 58px;
+    border-radius: 6px;
+    background: #f8fafc;
+    border-width: 1px;
+    border-color: #e2e8f0;
+
+    VerticalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 8px;
+        padding-bottom: 7px;
+        spacing: 3px;
+
+        Text {
+            text: root.label;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 650;
+            overflow: elide;
+        }
+
+        Text {
+            text: root.value;
+            color: root.accent;
+            font-size: 18px;
+            font-weight: 800;
+            overflow: elide;
+        }
+    }
+}
+
+component StatusPill inherits Rectangle {
+    in property <string> label;
+    in property <brush> fill: #edf7f2;
+    in property <brush> text-color: #16614d;
+
+    height: 24px;
+    border-radius: 12px;
+    background: root.fill;
+    border-width: 1px;
+    border-color: root.fill.darker(0.08);
+
+    Text {
+        text: root.label;
+        color: root.text-color;
+        font-size: 10px;
+        font-weight: 750;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
     }
 }
 
@@ -77,12 +219,12 @@ export component AppWindow inherits Window {
     in-out property <string> ui-font-family: "";
     in-out property <string> brand-font-family: "";
     in-out property <int> cat-mood: 0;
-    // 固件目标芯片信息（由固件文件名解析）
+    in-out property <int> active-page: 0;
+
     in-out property <string> chip-name: "";
     in-out property <string> chip-category: "";
     in-out property <string> chip-family: "";
     in-out property <string> chip-detail: "";
-    // 实际连接设备信息（由 USB 探测）
     in-out property <bool> device-connected: false;
     in-out property <string> device-name: "待连接设备";
     in-out property <string> device-category: "待连接";
@@ -94,7 +236,7 @@ export component AppWindow inherits Window {
     in-out property <bool> has-firmware: false;
     in-out property <bool> busy: false;
     in-out property <string> log-title: "准备就绪";
-    in-out property <string> log-text: "欢迎使用 MeowISP~";
+    in-out property <string> log-text: "欢迎使用 MeowISP";
     in-out property <string> status-text: "准备就绪";
     in-out property <bool> show-permission-bar: false;
     in-out property <bool> udev-installed: false;
@@ -114,6 +256,13 @@ export component AppWindow inherits Window {
     in-out property <[string]> online-options: [];
     in-out property <[string]> online-subtitles: [];
 
+    in-out property <int> catalog-family-count: 0;
+    in-out property <int> catalog-variant-count: 0;
+    in-out property <[string]> catalog-family-names: [];
+    in-out property <[string]> catalog-family-details: [];
+    in-out property <[string]> catalog-variant-rows: [];
+    in-out property <[string]> catalog-config-rows: [];
+
     callback request-pick-bin();
     callback request-open-online();
     callback request-refresh-online();
@@ -129,415 +278,706 @@ export component AppWindow inherits Window {
     callback request-dismiss-success();
     callback request-dismiss-error();
 
-    title: root.app-version == "dev" ? "MeowISP dev" : "MeowISP v" + root.app-version;
-    width: 430px;
-    height: root.show-permission-bar ? 450px : 410px;
-    background: #f8f1e8;
+    title: root.app-version == "dev" ? "Meow WCH ISP dev" : "Meow WCH ISP v" + root.app-version;
+    width: 1040px;
+    height: 720px;
+    background: #eef2f5;
     default-font-family: root.ui-font-family;
 
     Rectangle {
         width: 100%;
         height: 100%;
-        background: @linear-gradient(180deg, #faf4ec 0%, #f2e7d8 100%);
+        background: #eef2f5;
 
-        VerticalLayout {
-            padding: 14px;
-            spacing: 6px;
-
-            // ── HEADER ──────────────────────────────────────────────────
             Rectangle {
-                height: 62px;
-                border-radius: 22px;
-                background: @linear-gradient(135deg, #ffd5b0 0%, #ffba95 50%, #ffc8a8 100%);
-                border-width: 1px;
-                border-color: #f0b48d;
+                x: 0px;
+                y: 0px;
+                width: 216px;
+                height: parent.height;
+                background: #f8fafc;
+                border-width: 0px;
 
-                HorizontalLayout {
-                    padding: 12px;
-                    spacing: 10px;
-
-                    Rectangle {
-                        width: 36px;
-                        height: 36px;
-
-                        Image {
-                            source: root.cat-mood == 1
-                                ? @image-url("../../../assets/cat_face_3d.png")
-                                : root.cat-mood == 2
-                                    ? @image-url("../../../assets/smiling_cat_with_heart-eyes_3d.png")
-                                    : root.cat-mood == 3
-                                        ? @image-url("../../../assets/crying_cat_3d.png")
-                                        : @image-url("../../../assets/grinning_cat_3d.png");
-                            width: 36px;
-                            height: 36px;
-                        }
-                    }
-
-                    Rectangle {
-                        horizontal-stretch: 1;
-                        background: transparent;
-
-                        Text {
-                            x: 0px;
-                            y: (parent.height - self.height) / 2 + 2px;
-                            text: root.app-version == "dev" ? "MeowISP dev" : "MeowISP v" + root.app-version;
-                            color: #241914;
-                            font-family: root.brand-font-family;
-                            font-size: 25px;
-                            font-weight: 700;
-                        }
-                    }
-
-                    VerticalLayout {
-                        alignment: center;
-
-                        Rectangle {
-                            width: 80px;
-                            height: 30px;
-                            border-radius: 15px;
-                            background: root.busy ? #6a5547
-                                : root.device-category == "有线款" ? #dff0db
-                                : root.device-category == "无线款" ? #dce8fb
-                                : root.device-category == "其他" ? #ece1fb
-                                : #fff5ea;
-                            border-width: 1px;
-                            border-color: root.busy ? #6a5547 : #e5c9b1;
-
-                            Text {
-                                text: root.busy ? "处理中" : root.device-category;
-                                color: root.busy ? #fff8f2 : #6f513f;
-                                font-size: 11px;
-                                font-weight: 800;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                    }
+                Rectangle {
+                    x: parent.width - 1px;
+                    width: 1px;
+                    height: parent.height;
+                    background: #d9e1ea;
                 }
-            }
-
-            // ── CHIP CARD (水平单行: 名字左 · family 右) ─────────────────
-            Rectangle {
-                height: 48px;
-                border-radius: 18px;
-                background: #fffaf6;
-                border-width: 1px;
-                border-color: #e7d8ca;
-
-                HorizontalLayout {
-                    padding-left: 14px;
-                    padding-right: 14px;
-                    spacing: 8px;
-
-                    Text {
-                        text: root.device-name;
-                        color: #2a201b;
-                        font-size: 15px;
-                        font-weight: 900;
-                        vertical-alignment: center;
-                    }
-
-                    Text {
-                        text: root.device-family;
-                        color: #8f7767;
-                        font-size: 10px;
-                        font-weight: 700;
-                        horizontal-stretch: 1;
-                        horizontal-alignment: right;
-                        vertical-alignment: center;
-                        overflow: elide;
-                    }
-                }
-            }
-
-            // ── FIRMWARE ROW (解析信息左 · 两按钮横排右) ─────────────────
-            Rectangle {
-                height: 68px;
-                border-radius: 22px;
-                background: #f3eeff;
-                border-width: 1px;
-                border-color: #ddd5f5;
-
-                HorizontalLayout {
-                    padding: 12px;
-                    spacing: 10px;
-
-                    VerticalLayout {
-                        alignment: center;
-                        horizontal-stretch: 1;
-                        spacing: 4px;
-
-                        Text {
-                            text: root.has-firmware ? root.firmware-name : "未选择固件";
-                            color: #2b2150;
-                            font-size: 14px;
-                            font-weight: 900;
-                            overflow: elide;
-                        }
-
-                        if root.chip-name != "" || root.chip-family != "": Text {
-                            text: root.chip-name != "" && root.chip-family != ""
-                                ? root.chip-name + "  ·  " + root.chip-family
-                                : root.chip-name != ""
-                                    ? root.chip-name
-                                    : root.chip-family;
-                            color: #8b7bb0;
-                            font-size: 10px;
-                            font-weight: 700;
-                            overflow: elide;
-                        }
-                    }
-
-                    VerticalLayout {
-                        alignment: center;
-
-                        HorizontalLayout {
-                            spacing: 8px;
-
-                            MiniButton {
-                                width: 84px;
-                                label: "本地 BIN";
-                                accent: #6c55a0;
-                                text-color: #fffaf6;
-                                enabled: !root.busy;
-                                clicked => { root.request-pick-bin(); }
-                            }
-
-                            MiniButton {
-                                width: 84px;
-                                label: "在线选择";
-                                accent: #f0ebff;
-                                text-color: #5c4389;
-                                enabled: !root.busy;
-                                clicked => { root.request-open-online(); }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── PERMISSION BAR (Linux only, conditional) ─────────────────
-            if root.show-permission-bar: Rectangle {
-                height: 34px;
-                border-radius: 16px;
-                background: #fff1df;
-                border-width: 1px;
-                border-color: #efc88c;
-
-                HorizontalLayout {
-                    padding-left: 10px;
-                    padding-right: 8px;
-                    spacing: 8px;
-
-                    Text {
-                        text: "USB 权限未配置";
-                        color: #88561f;
-                        font-size: 11px;
-                        font-weight: 700;
-                        vertical-alignment: center;
-                        horizontal-stretch: 1;
-                    }
-
-                    MiniButton {
-                        width: 80px;
-                        label: "自动配置";
-                        accent: #d58d3a;
-                        text-color: #fffaf6;
-                        clicked => { root.request-fix-permission(); }
-                    }
-                }
-            }
-
-            // ── ACTION AREA ──────────────────────────────────────────────
-            Rectangle {
-                height: 116px;
-                background: transparent;
-
-                HorizontalLayout {
-                    spacing: 10px;
-
-                    ActionButton {
-                        horizontal-stretch: 1;
-                        label: "刷写";
-                        accent: #69be7a;
-                        enabled: !root.busy && root.device-connected && root.has-firmware;
-                        clicked => { root.request-flash-bin(); }
-                    }
-
-                    VerticalLayout {
-                        horizontal-stretch: 1;
-                        spacing: 7px;
-
-                        MiniButton {
-                            label: "校验";
-                            accent: #dae5ec;
-                            text-color: #435b68;
-                            enabled: !root.busy && root.device-connected && root.has-firmware;
-                            clicked => { root.request-verify-bin(); }
-                        }
-
-                        MiniButton {
-                            label: "清空 Codeflash";
-                            accent: #c67d49;
-                            text-color: #fffaf6;
-                            enabled: !root.busy && root.device-connected;
-                            clicked => { root.request-erase-code(); }
-                        }
-
-                        MiniButton {
-                            label: "清空 Dataflash";
-                            accent: #bf8c57;
-                            text-color: #fffaf6;
-                            enabled: !root.busy && root.device-connected;
-                            clicked => { root.request-erase-data(); }
-                        }
-                    }
-                }
-            }
-
-            // ── PROGRESS / STATUS AREA ───────────────────────────────────
-            Rectangle {
-                height: 64px;
-                border-radius: 22px;
-                background: #fffaf6;
-                border-width: 1px;
-                border-color: #e5d6c8;
 
                 VerticalLayout {
-                    padding-left: 14px;
+                    padding-left: 16px;
                     padding-right: 14px;
-                    padding-top: 10px;
-                    padding-bottom: 10px;
-                    spacing: 4px;
+                    padding-top: 18px;
+                    padding-bottom: 14px;
+                    spacing: 14px;
 
-                    // 标题行
                     HorizontalLayout {
+                        height: 42px;
+                        spacing: 10px;
+
+                        Rectangle {
+                            width: 34px;
+                            height: 34px;
+                            border-radius: 8px;
+                            background: #e9f4f0;
+                            border-width: 1px;
+                            border-color: #c8ded6;
+
+                            Image {
+                                source: root.cat-mood == 3
+                                    ? @image-url("../../../assets/crying_cat_3d.png")
+                                    : root.cat-mood == 2
+                                        ? @image-url("../../../assets/smiling_cat_with_heart-eyes_3d.png")
+                                        : @image-url("../../../assets/grinning_cat_3d.png");
+                                width: 26px;
+                                height: 26px;
+                                x: 4px;
+                                y: 4px;
+                            }
+                        }
+
+                        VerticalLayout {
+                            spacing: 1px;
+
+                            Text {
+                                text: "Meow WCH ISP";
+                                color: #111827;
+                                font-family: root.brand-font-family;
+                                font-size: 15px;
+                                font-weight: 800;
+                                overflow: elide;
+                            }
+
+                            Text {
+                                text: root.app-version == "dev" ? "development build" : "v" + root.app-version;
+                                color: #728095;
+                                font-size: 10px;
+                                font-weight: 600;
+                                overflow: elide;
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
                         spacing: 6px;
+                        NavItem { icon: "⌂"; label: "Dashboard"; active: root.active-page == 0; clicked => { root.active-page = 0; } }
+                        NavItem { icon: "↯"; label: "Flash"; active: root.active-page == 1; clicked => { root.active-page = 1; } }
+                        NavItem { icon: "▦"; label: "Memory"; active: root.active-page == 2; clicked => { root.active-page = 2; } }
+                        NavItem { icon: "⚙"; label: "Config"; active: root.active-page == 3; clicked => { root.active-page = 3; } }
+                        NavItem { icon: "◇"; label: "Project"; active: root.active-page == 4; clicked => { root.active-page = 4; } }
+                        NavItem { icon: "⌕"; label: "Catalog"; active: root.active-page == 5; clicked => { root.active-page = 5; } }
+                        NavItem { icon: "AI"; label: "Automation"; active: root.active-page == 6; clicked => { root.active-page = 6; } }
+                    }
+
+                    Rectangle { vertical-stretch: 1; background: transparent; }
+
+                    Panel {
+                        height: 148px;
+                        title: "Session";
+                        subtitle: root.device-connected ? root.device-name : "No device";
+
+                        VerticalLayout {
+                            spacing: 8px;
+
+                            StatusPill {
+                                width: 100%;
+                                label: root.busy ? "BUSY" : root.device-connected ? "CONNECTED" : "IDLE";
+                                fill: root.busy ? #fff1d6 : root.device-connected ? #e6f5ed : #edf1f5;
+                                text-color: root.busy ? #8a5600 : root.device-connected ? #16614d : #64748b;
+                            }
+
+                            Text {
+                                text: root.status-text;
+                                color: #435065;
+                                font-size: 11px;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                x: 216px;
+                y: 0px;
+                width: root.width - 216px;
+                height: parent.height;
+                background: transparent;
+
+                VerticalLayout {
+                    width: 100%;
+                    height: 100%;
+                    spacing: 0px;
+
+                Rectangle {
+                    height: 56px;
+                    background: #ffffff;
+                    border-width: 0px;
+
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        width: parent.width;
+                        background: #d9e1ea;
+                    }
+
+                    HorizontalLayout {
+                        padding-left: 22px;
+                        padding-right: 18px;
+                        spacing: 12px;
+
+                        Text {
+                            text: root.active-page == 0 ? "Dashboard"
+                                : root.active-page == 1 ? "Flash Operation"
+                                : root.active-page == 2 ? "Memory Regions"
+                                : root.active-page == 3 ? "Configuration"
+                                : root.active-page == 4 ? "Project"
+                                : root.active-page == 5 ? "Device Catalog"
+                                : "Automation";
+                            color: #101827;
+                            font-size: 18px;
+                            font-weight: 800;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+
+                        StatusPill {
+                            width: 98px;
+                            label: root.show-permission-bar ? "USB PERMISSION" : "USB READY";
+                            fill: root.show-permission-bar ? #fff2d9 : #e9f4f0;
+                            text-color: root.show-permission-bar ? #805200 : #16614d;
+                        }
+
+                        GhostButton {
+                            width: 92px;
+                            height: 32px;
+                            label: "Copy Log";
+                            clicked => { root.request-copy-log(); }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    background: #eef2f5;
+
+                    if root.active-page == 0: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        VerticalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+
+                            Panel {
+                                height: 128px;
+                                title: root.device-connected ? root.device-name : "No WCH ISP device";
+                                subtitle: root.device-connected ? root.device-family : "Connect a USB or serial ISP target, then scan or start a guarded plan.";
+
+                                HorizontalLayout {
+                                    spacing: 14px;
+
+                                    Metric { horizontal-stretch: 1; label: "Transport"; value: root.device-connected ? "USB" : "None"; }
+                                    Metric { horizontal-stretch: 1; label: "Family"; value: root.device-family != "" ? root.device-family : "Unknown"; accent: #5a45a6; }
+                                    Metric { horizontal-stretch: 1; label: "Firmware"; value: root.has-firmware ? "Selected" : "Missing"; accent: root.has-firmware ? #256f5a : #9b5f1f; }
+                                    Metric { horizontal-stretch: 1; label: "Catalog"; value: root.catalog-variant-count + " chips"; accent: #2f6fa3; }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 16px;
+
+                                Panel {
+                                    horizontal-stretch: 58;
+                                    height: 332px;
+                                    title: "Available Operations";
+                                    subtitle: "Destructive actions stay disabled until device and input are valid.";
+
+                                    VerticalLayout {
+                                        spacing: 10px;
+
+                                        Rectangle {
+                                            height: 68px;
+                                            border-radius: 6px;
+                                            background: #f8fafc;
+                                            border-width: 1px;
+                                            border-color: #e2e8f0;
+
+                                            HorizontalLayout {
+                                                padding: 12px;
+                                                spacing: 10px;
+
+                                                VerticalLayout {
+                                                    horizontal-stretch: 1;
+                                                    spacing: 4px;
+
+                                                    Text { text: root.has-firmware ? root.firmware-name : "No firmware selected"; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
+                                                    Text { text: root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "BIN file or online release asset"; color: #64748b; font-size: 11px; overflow: elide; }
+                                                }
+
+                                                GhostButton { width: 92px; label: "Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
+                                                GhostButton { width: 96px; label: "Online"; enabled: !root.busy; clicked => { root.request-open-online(); } }
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 10px;
+
+                                            PrimaryButton {
+                                                horizontal-stretch: 1;
+                                                height: 42px;
+                                                label: "Apply Flash";
+                                                enabled: !root.busy && root.device-connected && root.has-firmware;
+                                                clicked => { root.request-flash-bin(); }
+                                            }
+
+                                            GhostButton {
+                                                horizontal-stretch: 1;
+                                                height: 42px;
+                                                label: "Verify";
+                                                enabled: !root.busy && root.device-connected && root.has-firmware;
+                                                clicked => { root.request-verify-bin(); }
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 10px;
+
+                                            GhostButton {
+                                                horizontal-stretch: 1;
+                                                height: 38px;
+                                                label: "Erase Codeflash";
+                                                accent: #fff4e7;
+                                                text-color: #8b4f16;
+                                                enabled: false;
+                                                clicked => { root.request-erase-code(); }
+                                            }
+
+                                            GhostButton {
+                                                horizontal-stretch: 1;
+                                                height: 38px;
+                                                label: "Erase Dataflash";
+                                                accent: #fff4e7;
+                                                text-color: #8b4f16;
+                                                enabled: false;
+                                                clicked => { root.request-erase-data(); }
+                                            }
+                                        }
+
+                                        Text {
+                                            text: root.device-connected ? "Flash can be planned after firmware selection. Erase actions will unlock only after a dedicated plan preview lands." : "Write operations are disabled because no target has been identified.";
+                                            color: #66758a;
+                                            font-size: 11px;
+                                            wrap: word-wrap;
+                                        }
+                                    }
+                                }
+
+                                Panel {
+                                    horizontal-stretch: 42;
+                                    height: 332px;
+                                    title: "Health";
+                                    subtitle: "Permissions, AI surface and recent event.";
+
+                                    VerticalLayout {
+                                        spacing: 10px;
+
+                                        if root.show-permission-bar: Rectangle {
+                                            height: 70px;
+                                            border-radius: 6px;
+                                            background: #fff7e8;
+                                            border-width: 1px;
+                                            border-color: #f0d19d;
+
+                                            HorizontalLayout {
+                                                padding: 12px;
+                                                spacing: 10px;
+
+                                                Text { text: "USB permission is not configured."; color: #7a4b00; font-size: 12px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; wrap: word-wrap; }
+                                                GhostButton { width: 94px; label: "Install"; accent: #f1a947; text-color: #ffffff; clicked => { root.request-fix-permission(); } }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            height: 86px;
+                                            border-radius: 6px;
+                                            background: #f8fafc;
+                                            border-width: 1px;
+                                            border-color: #e2e8f0;
+
+                                            VerticalLayout {
+                                                padding: 12px;
+                                                spacing: 5px;
+                                                Text { text: root.log-title; color: #16202e; font-size: 13px; font-weight: 760; overflow: elide; }
+                                                Text { text: root.log-text; color: #64748b; font-size: 11px; wrap: word-wrap; }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            height: 62px;
+                                            border-radius: 6px;
+                                            background: #f7f4ff;
+                                            border-width: 1px;
+                                            border-color: #ded6f5;
+
+                                            VerticalLayout {
+                                                padding: 12px;
+                                                spacing: 3px;
+                                                Text { text: "AI control"; color: #4d3a8a; font-size: 12px; font-weight: 760; }
+                                                Text { text: "Catalog endpoint is available. Operation planning is next."; color: #6e62a4; font-size: 11px; overflow: elide; }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.active-page == 1: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        HorizontalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+
+                            Panel {
+                                width: 360px;
+                                title: "Firmware Source";
+                                subtitle: "Local BIN and release assets.";
+
+                                VerticalLayout {
+                                    spacing: 10px;
+                                    GhostButton { height: 38px; label: "Select Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
+                                    GhostButton { height: 38px; label: "Select Online Firmware"; enabled: !root.busy; clicked => { root.request-open-online(); } }
+                                    Rectangle {
+                                        height: 84px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        VerticalLayout {
+                                            padding: 12px;
+                                            spacing: 4px;
+                                            Text { text: root.firmware-name; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
+                                            Text { text: root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No parsed target metadata"; color: #64748b; font-size: 11px; overflow: elide; }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Panel {
+                                horizontal-stretch: 1;
+                                title: "Operation Plan";
+                                subtitle: "The preview is UI-ready; execution still uses the existing guarded backend.";
+
+                                VerticalLayout {
+                                    spacing: 9px;
+                                    for step in ["Connect", "Identify", "Validate chip", "Erase", "Program", "Verify", "Reset"]: Rectangle {
+                                        height: 38px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        HorizontalLayout {
+                                            padding-left: 12px;
+                                            padding-right: 12px;
+                                            Text { text: step; color: #1f2937; font-size: 12px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
+                                            Text { text: root.device-connected && root.has-firmware ? "ready" : "blocked"; color: root.device-connected && root.has-firmware ? #16614d : #8b5a16; font-size: 11px; vertical-alignment: center; }
+                                        }
+                                    }
+                                    PrimaryButton { height: 42px; label: "Apply Flash"; enabled: !root.busy && root.device-connected && root.has-firmware; clicked => { root.request-flash-bin(); } }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.active-page == 2: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        HorizontalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+                            Panel {
+                                width: 280px;
+                                title: "Regions";
+                                subtitle: "Capability-driven memory map.";
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    for row in ["Code flash · read/write/erase", "Data flash · read/write/erase", "Config · read first", "Bootloader · protected"]: Rectangle {
+                                        height: 44px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                    }
+                                }
+                            }
+                            Panel {
+                                horizontal-stretch: 1;
+                                title: "Inspector";
+                                subtitle: "Read/export, write/import and erase controls are visible but guarded.";
+                                VerticalLayout {
+                                    spacing: 10px;
+                                    GhostButton { height: 38px; label: "Read Selected Region"; enabled: root.device-connected && !root.busy; }
+                                    GhostButton { height: 38px; label: "Import and Plan Write"; enabled: false; }
+                                    GhostButton { height: 38px; label: "Plan Erase"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
+                                    Text { text: "Hex preview and exported files will land here in the next implementation pass."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.active-page == 3: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        HorizontalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+                            Panel {
+                                width: 280px;
+                                title: "Registers";
+                                subtitle: "Read-only schema view.";
+                                ListView {
+                                    vertical-stretch: 1;
+                                    for row in root.catalog-config-rows: Rectangle {
+                                        height: 38px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                    }
+                                }
+                            }
+                            Panel {
+                                horizontal-stretch: 1;
+                                title: "Fields";
+                                subtitle: "Reserved bits remain non-editable by default.";
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    for row in ["Current value", "Target value", "Reset value", "Risk", "Diff preview"]: Rectangle {
+                                        height: 42px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                            Panel {
+                                width: 300px;
+                                title: "Inspector";
+                                subtitle: "Enum meanings, raw bits and constraints.";
+                                Text { text: "Select a register field after read support lands. This surface is intentionally present now so all config options have a home."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                            }
+                        }
+                    }
+
+                    if root.active-page == 4: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+                        Panel {
+                            x: 20px;
+                            y: 20px;
+                            width: parent.width - 40px;
+                            height: parent.height - 40px;
+                            title: "Project Intent";
+                            subtitle: "TOML project files will map product intent to device-aware operation plans.";
+                            Text { text: "No project loaded. Planned states: parsed project, target mismatch, ready to plan, ready to apply."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                        }
+                    }
+
+                    if root.active-page == 5: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        HorizontalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+
+                            Panel {
+                                width: 260px;
+                                title: "Families";
+                                subtitle: root.catalog-family-count + " families";
+
+                                ListView {
+                                    vertical-stretch: 1;
+                                    for family[index] in root.catalog-family-names: Rectangle {
+                                        height: 54px;
+                                        border-radius: 6px;
+                                        background: family-touch.has-hover ? #f1f5f9 : #ffffff;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        animate background { duration: 120ms; easing: ease; }
+                                        family-touch := TouchArea { mouse-cursor: pointer; }
+                                        VerticalLayout {
+                                            padding: 9px;
+                                            spacing: 3px;
+                                            Text { text: family; color: #16202e; font-size: 12px; font-weight: 760; overflow: elide; }
+                                            Text { text: root.catalog-family-details[index]; color: #64748b; font-size: 10px; overflow: elide; }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Panel {
+                                horizontal-stretch: 1;
+                                title: "Variants";
+                                subtitle: root.catalog-variant-count + " supported devices from rs-wchisp";
+
+                                ListView {
+                                    vertical-stretch: 1;
+                                    for row in root.catalog-variant-rows: Rectangle {
+                                        height: 34px;
+                                        border-radius: 5px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 600; x: 10px; vertical-alignment: center; overflow: elide; }
+                                    }
+                                }
+                            }
+
+                            Panel {
+                                width: 260px;
+                                title: "Filters";
+                                subtitle: "Read-only catalog controls.";
+
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    for row in ["USB supported", "Serial supported", "Has config registers", "Has data flash", "Family prefix"]: Rectangle {
+                                        height: 36px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if root.active-page == 6: ScrollView {
+                        width: parent.width;
+                        height: parent.height;
+
+                        HorizontalLayout {
+                            padding: 20px;
+                            spacing: 16px;
+
+                            Panel {
+                                horizontal-stretch: 1;
+                                title: "Current State JSON";
+                                subtitle: "AI-facing app state preview.";
+                                Text { text: "{ device: " + (root.device-connected ? root.device-name : "null") + ", firmware: " + root.firmware-name + ", status: " + root.status-text + " }"; color: #475569; font-size: 12px; wrap: word-wrap; }
+                            }
+
+                            Panel {
+                                width: 320px;
+                                title: "AI Commands";
+                                subtitle: "Available now";
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    for row in ["meowisp ai catalog --json", "meowisp doctor", "meowisp probe", "Operation planning: next"]: Rectangle {
+                                        height: 38px;
+                                        border-radius: 6px;
+                                        background: #f7f4ff;
+                                        border-width: 1px;
+                                        border-color: #ded6f5;
+                                        Text { text: row; color: #4d3a8a; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 36px;
+                    background: #ffffff;
+                    border-width: 0px;
+
+                    Rectangle {
+                        height: 1px;
+                        width: parent.width;
+                        background: #d9e1ea;
+                    }
+
+                    HorizontalLayout {
+                        padding-left: 18px;
+                        padding-right: 18px;
+                        spacing: 12px;
 
                         Text {
                             text: root.progress-label;
-                            color: #2a201b;
-                            font-size: 12px;
-                            font-weight: 900;
-                            horizontal-stretch: 1;
-                            vertical-alignment: center;
-                        }
-
-                        if root.progress-visible || root.progress-value > 0: Text {
-                            text: root.progress-value + "%";
-                            color: #8a7465;
+                            color: #334155;
                             font-size: 11px;
-                            font-weight: 700;
+                            font-weight: 650;
                             vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            overflow: elide;
                         }
-                    }
-
-                    // 单一进度条：根据当前流程显示加载 / 识别 / 下载 / 刷写 / 校验等状态
-                    Rectangle {
-                        height: 7px;
-                        border-radius: 3.5px;
-                        background: #e4ede5;
 
                         Rectangle {
-                            x: 0px;
-                            width: parent.width * root.progress-value / 100;
-                            height: parent.height;
-                            border-radius: 3.5px;
-                            background: @linear-gradient(90deg, #7ec47f 0%, #4aab6d 100%);
-                            animate width { duration: 180ms; easing: ease; }
+                            width: 180px;
+                            height: 6px;
+                            border-radius: 3px;
+                            background: #e2e8f0;
+                            y: (parent.height - self.height) / 2;
+
+                            Rectangle {
+                                width: parent.width * root.progress-value / 100;
+                                height: parent.height;
+                                border-radius: 3px;
+                                background: #256f5a;
+                                animate width { duration: 180ms; easing: ease; }
+                            }
+                        }
+
+                        Text {
+                            text: root.progress-value + "%";
+                            color: #64748b;
+                            font-size: 11px;
+                            font-weight: 650;
+                            vertical-alignment: center;
                         }
                     }
                 }
             }
         }
 
-        // ── ONLINE SHEET OVERLAY ─────────────────────────────────────────
         if root.online-sheet-visible: Rectangle {
             width: 100%;
             height: 100%;
-            background: #1e150faa;
+            background: #101827aa;
 
             Rectangle {
-                x: 20px;
-                y: 28px;
-                width: parent.width - 40px;
-                height: parent.height - 56px;
-                border-radius: 24px;
-                background: #faf5f0;
+                x: (parent.width - self.width) / 2;
+                y: 72px;
+                width: min(720px, parent.width - 64px);
+                height: parent.height - 144px;
+                border-radius: 8px;
+                background: #ffffff;
                 border-width: 1px;
-                border-color: #e3d3c5;
+                border-color: #d9e1ea;
 
                 VerticalLayout {
-                    padding: 16px;
-                    spacing: 0px;
+                    padding: 18px;
+                    spacing: 12px;
 
-                    // Header
                     HorizontalLayout {
-                        spacing: 8px;
-
-                        Text {
-                            text: "在线固件";
-                            color: #2a201b;
-                            font-size: 17px;
-                            font-weight: 900;
-                            horizontal-stretch: 1;
-                            vertical-alignment: center;
-                        }
-
-                        if root.online-status != "": Text {
-                            text: root.online-status;
-                            color: #a08878;
-                            font-size: 10px;
-                            font-weight: 600;
-                            horizontal-alignment: right;
-                            vertical-alignment: center;
-                        }
-
-                        MiniButton {
-                            width: 56px;
-                            label: "刷新";
-                            accent: #f0ebff;
-                            text-color: #5c4389;
-                            enabled: !root.online-loading;
-                            clicked => { root.request-refresh-online(); }
-                        }
-
-                        MiniButton {
-                            width: 56px;
-                            label: "关闭";
-                            accent: #fbf2ea;
-                            text-color: #70584b;
-                            clicked => { root.request-close-online(); }
-                        }
-                    }
-
-                    // Divider
-                    Rectangle {
-                        height: 12px;
-                        background: transparent;
-                    }
-
-                    Rectangle {
-                        height: 1px;
-                        background: #e8d8cc;
-                    }
-
-                    Rectangle {
-                        height: 8px;
-                        background: transparent;
-                    }
-
-                    if root.online-loading: VerticalLayout {
-                        spacing: 0px;
-                        alignment: center;
-
-                        Text {
-                            text: "正在读取...";
-                            color: #9a7f6f;
-                            font-size: 12px;
-                            font-weight: 700;
-                            horizontal-alignment: center;
-                        }
+                        spacing: 10px;
+                        Text { text: "Online Firmware"; color: #16202e; font-size: 16px; font-weight: 800; horizontal-stretch: 1; vertical-alignment: center; }
+                        Text { text: root.online-status; color: #64748b; font-size: 11px; vertical-alignment: center; overflow: elide; }
+                        GhostButton { width: 78px; label: "Refresh"; enabled: !root.online-loading; clicked => { root.request-refresh-online(); } }
+                        GhostButton { width: 70px; label: "Close"; clicked => { root.request-close-online(); } }
                     }
 
                     ListView {
@@ -545,63 +985,21 @@ export component AppWindow inherits Window {
                         enabled: !root.online-loading;
 
                         for option[index] in root.online-options : Rectangle {
-                            width: parent.width - 4px;
                             height: 54px;
-                            border-radius: 16px;
-                            background: option-touch.pressed ? #e8dff8
-                                : option-touch.has-hover ? #f0eaff
-                                : transparent;
-
-                            animate background { duration: 80ms; easing: ease; }
-
+                            border-radius: 6px;
+                            background: option-touch.pressed ? #e9f4f0 : option-touch.has-hover ? #f4f7f9 : #ffffff;
+                            border-width: 1px;
+                            border-color: #e2e8f0;
+                            animate background { duration: 100ms; easing: ease; }
                             option-touch := TouchArea {
                                 clicked => { root.request-select-online(index); }
                                 mouse-cursor: pointer;
                             }
-
-                            HorizontalLayout {
-                                padding-left: 10px;
-                                padding-right: 10px;
-                                spacing: 8px;
-
-                                // 左侧色块
-                                Rectangle {
-                                    width: 4px;
-                                    height: 28px;
-                                    border-radius: 2px;
-                                    background: #9b82d4;
-                                    y: (parent.height - self.height) / 2;
-                                }
-
-                                VerticalLayout {
-                                    alignment: center;
-                                    horizontal-stretch: 1;
-                                    spacing: 3px;
-
-                                    Text {
-                                        text: option;
-                                        color: #2b1e46;
-                                        font-size: 12px;
-                                        font-weight: 900;
-                                        overflow: elide;
-                                    }
-
-                                    Text {
-                                        text: root.online-subtitles[index];
-                                        color: #8a7aaa;
-                                        font-size: 10px;
-                                        font-weight: 600;
-                                        overflow: elide;
-                                    }
-                                }
-
-                                Text {
-                                    text: "›";
-                                    color: #c4b0e8;
-                                    font-size: 18px;
-                                    font-weight: 900;
-                                    vertical-alignment: center;
-                                }
+                            VerticalLayout {
+                                padding: 10px;
+                                spacing: 3px;
+                                Text { text: option; color: #16202e; font-size: 12px; font-weight: 760; overflow: elide; }
+                                Text { text: root.online-subtitles[index]; color: #64748b; font-size: 10px; overflow: elide; }
                             }
                         }
                     }
@@ -609,154 +1007,63 @@ export component AppWindow inherits Window {
             }
         }
 
-        // ── SUCCESS OVERLAY ──────────────────────────────────────────────
         if root.show-success: Rectangle {
             width: 100%;
             height: 100%;
-            background: #2c1e16aa;
+            background: #10182799;
 
             Rectangle {
                 x: (parent.width - self.width) / 2;
                 y: (parent.height - self.height) / 2;
-                width: 280px;
-                height: 280px;
-                border-radius: 28px;
-                background: #fff7f0;
+                width: 330px;
+                height: 272px;
+                border-radius: 8px;
+                background: #ffffff;
                 border-width: 1px;
-                border-color: #ead7c8;
+                border-color: #d9e1ea;
 
                 VerticalLayout {
                     padding: 24px;
-                    spacing: 0px;
+                    spacing: 12px;
                     alignment: center;
 
-                    // 猫猫动图居中
-                    HorizontalLayout {
-                        alignment: center;
-
-                        Image {
-                            source: root.success-animation-image;
-                            width: 80px;
-                            height: 80px;
-                        }
-                    }
-
-                    Rectangle { height: 14px; }
-
-                    Text {
-                        text: root.success-title;
-                        color: #2f211b;
-                        font-size: 20px;
-                        font-weight: 900;
-                        horizontal-alignment: center;
-                    }
-
-                    Rectangle { height: 6px; }
-
-                    Text {
-                        text: root.success-text;
-                        color: #9a7e6e;
-                        font-size: 11px;
-                        wrap: word-wrap;
-                        horizontal-alignment: center;
-                    }
-
-                    Rectangle { height: 10px; }
-
-                    ActionButton {
-                        width: 100%;
-                        height: 42px;
-                        label: "太好了";
-                        accent: #2f8f5b;
-                        clicked => { root.request-dismiss-success(); }
-                    }
-
-                    Rectangle { height: 12px; }
+                    Image { source: root.success-animation-image; width: 72px; height: 72px; }
+                    Text { text: root.success-title; color: #16202e; font-size: 20px; font-weight: 850; horizontal-alignment: center; }
+                    Text { text: root.success-text; color: #64748b; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
+                    PrimaryButton { width: 100%; height: 38px; label: "Done"; clicked => { root.request-dismiss-success(); } }
                 }
             }
         }
 
-        // ── ERROR OVERLAY ────────────────────────────────────────────────
         if root.show-error: Rectangle {
             width: 100%;
             height: 100%;
-            background: #2a1711b8;
+            background: #101827aa;
 
             Rectangle {
                 x: (parent.width - self.width) / 2;
                 y: (parent.height - self.height) / 2;
-                width: 300px;
-                height: 300px;
-                border-radius: 28px;
-                background: #fff6f1;
+                width: 360px;
+                height: 288px;
+                border-radius: 8px;
+                background: #ffffff;
                 border-width: 1px;
-                border-color: #ead3ca;
+                border-color: #d9e1ea;
 
                 VerticalLayout {
                     padding: 24px;
-                    spacing: 0px;
+                    spacing: 12px;
                     alignment: center;
 
-                    HorizontalLayout {
-                        alignment: center;
-
-                        Image {
-                            source: @image-url("../../../assets/crying_cat_3d.png");
-                            width: 80px;
-                            height: 80px;
-                        }
-                    }
-
-                    Rectangle { height: 14px; }
-
-                    Text {
-                        text: root.error-title;
-                        color: #37231d;
-                        font-size: 20px;
-                        font-weight: 900;
-                        horizontal-alignment: center;
-                    }
-
-                    Rectangle { height: 6px; }
-
-                    Rectangle {
-                        height: 48px;
-                        background: transparent;
-
-                        Text {
-                            text: root.error-text;
-                            color: #8a6d62;
-                            font-size: 11px;
-                            wrap: word-wrap;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-
-                    Rectangle { height: 10px; }
+                    Image { source: @image-url("../../../assets/crying_cat_3d.png"); width: 72px; height: 72px; }
+                    Text { text: root.error-title; color: #16202e; font-size: 20px; font-weight: 850; horizontal-alignment: center; }
+                    Text { text: root.error-text; color: #64748b; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; }
 
                     HorizontalLayout {
                         spacing: 10px;
-
-                        MiniButton {
-                            horizontal-stretch: 1;
-                            height: 40px;
-                            label: "复制错误信息";
-                            accent: #f4e7dd;
-                            text-color: #6f4d40;
-                            clicked => { root.request-copy-log(); }
-                        }
-
-                        ActionButton {
-                            horizontal-stretch: 1;
-                            height: 40px;
-                            label: "关闭";
-                            accent: #8d6555;
-                            clicked => { root.request-dismiss-error(); }
-                        }
+                        GhostButton { horizontal-stretch: 1; height: 38px; label: "Copy"; clicked => { root.request-copy-log(); } }
+                        PrimaryButton { horizontal-stretch: 1; height: 38px; label: "Close"; accent: #7c4b4b; clicked => { root.request-dismiss-error(); } }
                     }
-
-                    Rectangle { height: 12px; }
                 }
             }
         }

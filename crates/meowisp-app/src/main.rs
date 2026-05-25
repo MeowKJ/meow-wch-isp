@@ -597,6 +597,73 @@ fn set_online_options(app: &AppWindow, assets: &[online::ReleaseAsset]) {
     app.set_online_subtitles(Rc::new(VecModel::from(subtitles)).into());
 }
 
+fn set_catalog_overview(app: &AppWindow) {
+    let Ok(catalog) = catalog::load_catalog() else {
+        set_log(
+            app,
+            "设备目录读取失败",
+            "无法从 vendor-wchisp/devices 读取设备目录。",
+        );
+        return;
+    };
+
+    let mut family_names = Vec::new();
+    let mut family_details = Vec::new();
+    let mut variant_rows = Vec::new();
+    let mut config_rows = Vec::new();
+
+    for family in &catalog.families {
+        family_names.push(family.name.clone().into());
+        family_details.push(
+            format!(
+                "{} · {} variants · USB {:?} · Serial {:?}",
+                family.device_type_hex,
+                family.variants.len(),
+                family.transports.usb,
+                family.transports.serial
+            )
+            .into(),
+        );
+
+        for variant in &family.variants {
+            variant_rows.push(
+                format!(
+                    "{} · {}K/{}K · cfg {}",
+                    variant.name,
+                    variant.flash_size / 1024,
+                    variant.eeprom_size / 1024,
+                    variant.config_register_count
+                )
+                .into(),
+            );
+        }
+
+        for register in &family.config_registers {
+            config_rows.push(
+                format!(
+                    "{} · {} · 0x{:02X} · {} fields",
+                    family.name.replace(" Series", ""),
+                    register.name,
+                    register.offset,
+                    register.fields.len()
+                )
+                .into(),
+            );
+        }
+    }
+
+    if config_rows.is_empty() {
+        config_rows.push("No config register schema in catalog".into());
+    }
+
+    app.set_catalog_family_count(catalog.family_count as i32);
+    app.set_catalog_variant_count(catalog.variant_count as i32);
+    app.set_catalog_family_names(Rc::new(VecModel::from(family_names)).into());
+    app.set_catalog_family_details(Rc::new(VecModel::from(family_details)).into());
+    app.set_catalog_variant_rows(Rc::new(VecModel::from(variant_rows)).into());
+    app.set_catalog_config_rows(Rc::new(VecModel::from(config_rows)).into());
+}
+
 fn update_permission_state(app: &AppWindow) {
     if cfg!(target_os = "linux") {
         let installed = permission::udev_rules_installed();
@@ -1162,6 +1229,7 @@ fn main() -> Result<(), slint::PlatformError> {
     app.set_has_firmware(false);
     app.set_online_status("".into());
     set_online_options(&app, &[]);
+    set_catalog_overview(&app);
     update_permission_state(&app);
     clear_progress(&app);
     if let Ok(animation) = load_success_animation() {
