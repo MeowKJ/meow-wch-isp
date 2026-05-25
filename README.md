@@ -88,6 +88,7 @@ to the GitHub Release:
 
 - [Supported devices](docs/SUPPORTED_DEVICES.md)
 - [AI control contract](docs/AI_CONTROL.md)
+- [AI development plan](docs/AI_DEVELOPMENT_PLAN.md)
 - [Configuration UI plan](docs/CONFIG_UI.md)
 - [Project configuration format](docs/PROJECT_CONFIG.md)
 - [Architecture notes](docs/ARCHITECTURE.md)
