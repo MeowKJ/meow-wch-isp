@@ -5,9 +5,30 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
+  test:
+    name: Test before packaging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux UI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev libudev-dev libxkbcommon-dev
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Check
+        run: cargo check --workspace
+      - name: Test
+        run: cargo test --workspace
+
   build:
     name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -22,6 +43,9 @@ jobs:
           - platform: linux
             arch: amd64
             runner: ubuntu-latest
+          - platform: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -46,3 +70,18 @@ jobs:
         with:
           name: meowisp-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist/*
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

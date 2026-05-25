@@ -37,4 +37,3 @@ track WCH protocol and device database improvements with minimal merge pain.
 - macOS x64
 - Linux x64
 - Linux arm64
-- Windows x64, best effort

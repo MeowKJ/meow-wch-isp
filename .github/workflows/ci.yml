@@ -6,12 +6,23 @@ on:
 
 jobs:
   rust:
-    name: Rust
-    runs-on: ubuntu-latest
+    name: Rust (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux amd64
+            runner: ubuntu-latest
+            platform: linux
+          - name: macOS arm64
+            runner: macos-14
+            platform: macos
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Linux UI dependencies
+        if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libfontconfig1-dev libudev-dev libxkbcommon-dev
@@ -19,3 +30,5 @@ jobs:
         run: cargo fmt --all --check
       - name: Check
         run: cargo check --workspace
+      - name: Test
+        run: cargo test --workspace

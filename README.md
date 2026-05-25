@@ -7,7 +7,7 @@ visual chip configuration registers.
 
 Primary targets:
 
-- macOS and Linux first, with Windows kept buildable.
+- macOS and Linux first. Windows packaging is intentionally out of scope.
 - WCH ISP devices over USB, with serial transport exposed through the CLI.
 - Friendly desktop flashing for CH55x, CH57x, CH58x, CH59x, CH32V/CH32F, CH32X and CH32L families supported by the bundled `wchisp` device database.
 - AI-safe automation: machine-readable probe, flash, verify, erase and config flows.
@@ -73,6 +73,16 @@ python3 scripts/package_portable.py \
 ```
 
 Linux packages include `assets/50-wchisp.rules`.
+
+## Release Automation
+
+Pushing a tag like `v0.1.0` runs CI, builds portable packages, and uploads them
+to the GitHub Release:
+
+- macOS arm64
+- macOS x64
+- Linux amd64
+- Linux arm64
 
 ## Project Documents
 

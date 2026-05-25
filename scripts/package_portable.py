@@ -83,12 +83,6 @@ def package_linux(binary: Path, out_dir: Path, arch: str, version: str) -> Path:
         return create_targz(root, out_dir / package_name)
 
 
-def package_windows(binary: Path, out_dir: Path, arch: str, version: str) -> Path:
-    target = out_dir / f"MeowISP-windows-{arch}-{version}.exe"
-    shutil.copy2(binary, target)
-    return target
-
-
 def package_macos(binary: Path, out_dir: Path, arch: str, version: str) -> Path:
     package_name = f"MeowISP-macos-{arch}-{version}-portable"
     with tempfile.TemporaryDirectory(prefix="meowisp-macos-") as temp_dir:
@@ -118,7 +112,7 @@ def package_macos(binary: Path, out_dir: Path, arch: str, version: str) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Package MeowISP portable app archives")
-    parser.add_argument("--platform", required=True, choices=("linux", "macos", "windows"))
+    parser.add_argument("--platform", required=True, choices=("linux", "macos"))
     parser.add_argument("--arch", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--binary", required=True)
@@ -137,7 +131,7 @@ def main() -> int:
     elif args.platform == "macos":
         archive = package_macos(binary, out_dir, args.arch, args.version)
     else:
-        archive = package_windows(binary, out_dir, args.arch, args.version)
+        raise SystemExit(f"unsupported platform: {args.platform}")
 
     print(archive)
     return 0
