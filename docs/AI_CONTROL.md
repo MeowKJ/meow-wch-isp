@@ -147,6 +147,9 @@ parses project intent, resolves firmware relative to the project file, matches
 the target chip against the bundled catalog, validates requested config fields,
 and embeds a guarded flash plan when the firmware exists.
 
+For UI smoke tests, set `MEOWISP_PROJECT_FILE=path/to/meowisp.project.toml` to
+preload a project and `MEOWISP_UI_PAGE=project` to open the Project page first.
+
 ```json
 {
   "ok": true,

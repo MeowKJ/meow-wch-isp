@@ -55,6 +55,9 @@ meowisp project apply-config meowisp.project.toml --yes
 Implemented now:
 
 - `meowisp ai project plan --file meowisp.project.toml --json`
+- UI Project page can open a project file and render the same guarded plan.
+- `MEOWISP_PROJECT_FILE=path/to/meowisp.project.toml` preloads a project for UI smoke tests.
+- `MEOWISP_UI_PAGE=project` opens the app directly on the Project page for UI smoke tests.
 - target chip matching against the bundled rs-wchisp catalog
 - firmware path resolution relative to the project file
 - config bit validation against the target register schema

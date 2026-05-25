@@ -42,6 +42,7 @@ enum FirmwareSource {
 #[derive(Default)]
 struct AppState {
     selected_firmware: Option<FirmwareSource>,
+    selected_project: Option<PathBuf>,
     online_assets: Vec<online::ReleaseAsset>,
 }
 
@@ -753,6 +754,10 @@ fn initial_ui_page_from_env() -> Option<i32> {
     }
 }
 
+fn initial_project_from_env() -> Option<PathBuf> {
+    std::env::var_os("MEOWISP_PROJECT_FILE").map(PathBuf::from)
+}
+
 fn print_doctor() {
     println!("MeowISP doctor");
     println!(
@@ -992,6 +997,160 @@ fn set_flash_plan(app: &AppWindow, plan: &plan::OperationPlan) {
     });
     app.set_flash_plan_steps(Rc::new(VecModel::from(steps)).into());
     app.set_flash_plan_risks(Rc::new(VecModel::from(risks)).into());
+}
+
+fn set_project_empty(app: &AppWindow) {
+    app.set_project_loaded(false);
+    app.set_project_title("No project loaded".into());
+    app.set_project_subtitle("Open meowisp.project.toml".into());
+    app.set_project_plan_status("blocked".into());
+    app.set_project_summary_rows(
+        Rc::new(VecModel::from(vec![
+            "Project name".into(),
+            "Expected chip".into(),
+            "Firmware path".into(),
+            "Config mode".into(),
+            "Config bits".into(),
+        ]))
+        .into(),
+    );
+    app.set_project_plan_rows(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
+    app.set_project_plan_kinds(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
+    app.set_project_issue_rows(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
+    app.set_project_ai_command("meowisp ai project plan --file meowisp.project.toml --json".into());
+}
+
+fn set_project_plan(app: &AppWindow, path: &std::path::Path, project_plan: &project::ProjectPlan) {
+    let summary_rows: Vec<SharedString> = vec![
+        format!("Project · {}", project_plan.project.name).into(),
+        format!(
+            "Target · {}{}",
+            project_plan.target.chip,
+            project_plan
+                .target
+                .family
+                .as_ref()
+                .map(|family| format!(" · {family}"))
+                .unwrap_or_default()
+        )
+        .into(),
+        format!(
+            "Firmware · {}",
+            if project_plan.firmware.exists {
+                project_plan.firmware.path.clone()
+            } else {
+                format!("missing: {}", project_plan.firmware.path)
+            }
+        )
+        .into(),
+        format!("Config · {}", project_plan.config.mode).into(),
+        format!("Bits · {}", project_plan.config.requested_bit_count).into(),
+    ];
+
+    let mut plan_rows: Vec<SharedString> = Vec::new();
+    let mut plan_kinds: Vec<SharedString> = Vec::new();
+    let mut push_row = |row: String, kind: &str| {
+        plan_rows.push(row.into());
+        plan_kinds.push(kind.into());
+    };
+
+    push_row("Parse TOML · ok".into(), "ready");
+    push_row(
+        if project_plan.target.matched {
+            format!("Match target · {}", project_plan.target.chip)
+        } else {
+            format!("Target not supported · {}", project_plan.target.chip)
+        },
+        if project_plan.target.matched {
+            "ready"
+        } else {
+            "blocked"
+        },
+    );
+    push_row(
+        if project_plan.firmware.exists {
+            format!("Resolve firmware · {}", project_plan.firmware.path)
+        } else {
+            format!("Firmware missing · {}", project_plan.firmware.path)
+        },
+        if project_plan.firmware.exists {
+            "ready"
+        } else {
+            "blocked"
+        },
+    );
+    push_row(
+        format!(
+            "Validate config · {} bit(s)",
+            project_plan.config.requested_bit_count
+        ),
+        if project_plan.config.bits.iter().all(|bit| bit.known) {
+            "ready"
+        } else {
+            "blocked"
+        },
+    );
+    push_row(
+        if project_plan.flash_plan.is_some() {
+            "Build guarded flash plan · ok".into()
+        } else {
+            "Build guarded flash plan · waiting".into()
+        },
+        if project_plan.flash_plan.is_some() {
+            "ready"
+        } else {
+            "blocked"
+        },
+    );
+
+    let issue_rows: Vec<SharedString> = project_plan
+        .blockers
+        .iter()
+        .chain(project_plan.warnings.iter())
+        .map(|item| item.clone().into())
+        .collect();
+
+    app.set_project_loaded(true);
+    app.set_project_title(project_plan.project.name.clone().into());
+    app.set_project_subtitle(
+        path.file_name()
+            .and_then(|item| item.to_str())
+            .unwrap_or("meowisp.project.toml")
+            .into(),
+    );
+    app.set_project_plan_status(if project_plan.apply_ready {
+        "ready".into()
+    } else {
+        "blocked".into()
+    });
+    app.set_project_summary_rows(Rc::new(VecModel::from(summary_rows)).into());
+    app.set_project_plan_rows(Rc::new(VecModel::from(plan_rows)).into());
+    app.set_project_plan_kinds(Rc::new(VecModel::from(plan_kinds)).into());
+    app.set_project_issue_rows(Rc::new(VecModel::from(issue_rows)).into());
+    app.set_project_ai_command(
+        format!("meowisp ai project plan --file {} --json", path.display()).into(),
+    );
+    app.set_chip_name(project_plan.target.chip.clone().into());
+    app.set_chip_family(
+        project_plan
+            .target
+            .family
+            .clone()
+            .unwrap_or_else(|| "Project target".into())
+            .into(),
+    );
+
+    if let Some(flash_plan) = &project_plan.flash_plan {
+        set_flash_plan(app, flash_plan);
+        app.set_firmware_name(
+            std::path::Path::new(&project_plan.firmware.path)
+                .file_name()
+                .and_then(|item| item.to_str())
+                .unwrap_or(&project_plan.firmware.path)
+                .into(),
+        );
+        app.set_has_firmware(true);
+    }
 }
 
 fn set_online_options(app: &AppWindow, assets: &[online::ReleaseAsset]) {
@@ -1644,7 +1803,47 @@ fn main() -> Result<(), slint::PlatformError> {
     app.set_online_status("".into());
     set_online_options(&app, &[]);
     set_flash_plan_empty(&app);
+    set_project_empty(&app);
     set_catalog_overview(&app);
+    if let Some(path) = initial_project_from_env() {
+        app.set_active_page(4);
+        match project::plan_project_from_file(&path) {
+            Ok(project_plan) => {
+                {
+                    let mut guard = state.lock().expect("state lock poisoned");
+                    guard.selected_project = Some(path.clone());
+                    if project_plan.firmware.exists {
+                        guard.selected_firmware = Some(FirmwareSource::Local(PathBuf::from(
+                            &project_plan.firmware.resolved_path,
+                        )));
+                    }
+                }
+                set_project_plan(&app, &path, &project_plan);
+                if project_plan.flash_plan.is_none() {
+                    set_flash_plan_empty(&app);
+                }
+                if project_plan.apply_ready {
+                    app.set_status_text("项目计划可执行".into());
+                } else {
+                    app.set_status_text("项目计划待处理".into());
+                }
+                set_log(
+                    &app,
+                    "已加载项目计划",
+                    &format!(
+                        "{} · {} blocker(s)",
+                        project_plan.project.name,
+                        project_plan.blockers.len()
+                    ),
+                );
+            }
+            Err(err) => {
+                app.set_cat_mood(3);
+                app.set_status_text("项目读取失败".into());
+                set_log(&app, "项目读取失败", &err.to_string());
+            }
+        }
+    }
     update_permission_state(&app);
     clear_progress(&app);
     if let Ok(animation) = load_success_animation() {
@@ -1759,6 +1958,66 @@ fn main() -> Result<(), slint::PlatformError> {
                 hide_success(&app);
                 hide_error(&app);
                 set_log(&app, "已选择本地固件", &path.display().to_string());
+            }
+        }
+    });
+
+    let weak = app.as_weak();
+    let state_project = state.clone();
+    app.on_request_open_project(move || {
+        if let Some(path) = FileDialog::new()
+            .add_filter("MeowISP project", &["toml"])
+            .pick_file()
+        {
+            match project::plan_project_from_file(&path) {
+                Ok(project_plan) => {
+                    {
+                        let mut guard = state_project.lock().expect("state lock poisoned");
+                        guard.selected_project = Some(path.clone());
+                        if project_plan.firmware.exists {
+                            guard.selected_firmware = Some(FirmwareSource::Local(PathBuf::from(
+                                &project_plan.firmware.resolved_path,
+                            )));
+                        }
+                    }
+
+                    if let Some(app) = weak.upgrade() {
+                        set_project_plan(&app, &path, &project_plan);
+                        if project_plan.flash_plan.is_none() {
+                            set_flash_plan_empty(&app);
+                        }
+                        app.set_active_page(4);
+                        app.set_cat_mood(if project_plan.apply_ready { 2 } else { 0 });
+                        app.set_status_text(if project_plan.apply_ready {
+                            "项目计划可执行".into()
+                        } else {
+                            "项目计划待处理".into()
+                        });
+                        set_log(
+                            &app,
+                            if project_plan.apply_ready {
+                                "项目计划已就绪"
+                            } else {
+                                "项目计划已加载"
+                            },
+                            &format!(
+                                "{} · {} blocker(s)",
+                                project_plan.project.name,
+                                project_plan.blockers.len()
+                            ),
+                        );
+                        hide_success(&app);
+                        hide_error(&app);
+                    }
+                }
+                Err(err) => {
+                    if let Some(app) = weak.upgrade() {
+                        app.set_cat_mood(3);
+                        app.set_status_text("项目读取失败".into());
+                        set_log(&app, "项目读取失败", &err.to_string());
+                        show_error(&app, "项目读取失败", &err.to_string());
+                    }
+                }
             }
         }
     });

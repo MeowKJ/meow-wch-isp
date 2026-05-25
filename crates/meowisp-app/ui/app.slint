@@ -272,8 +272,18 @@ export component AppWindow inherits Window {
     in-out property <string> flash-plan-status: "blocked";
     in-out property <[string]> flash-plan-steps: [];
     in-out property <[string]> flash-plan-risks: [];
+    in-out property <bool> project-loaded: false;
+    in-out property <string> project-title: "No project loaded";
+    in-out property <string> project-subtitle: "Open meowisp.project.toml";
+    in-out property <string> project-plan-status: "blocked";
+    in-out property <[string]> project-summary-rows: [];
+    in-out property <[string]> project-plan-rows: [];
+    in-out property <[string]> project-plan-kinds: [];
+    in-out property <[string]> project-issue-rows: [];
+    in-out property <string> project-ai-command: "meowisp ai project plan --file meowisp.project.toml --json";
 
     callback request-pick-bin();
+    callback request-open-project();
     callback request-open-online();
     callback request-refresh-online();
     callback request-close-online();
@@ -813,11 +823,17 @@ export component AppWindow inherits Window {
                             width: 320px;
                             height: parent.height - 40px;
                             title: "Project File";
-                            subtitle: "meowisp.project.toml";
+                            subtitle: root.project-subtitle;
                             VerticalLayout {
                                 alignment: start;
                                 spacing: 10px;
-                                for row in ["Project name", "Expected chip", "Firmware path", "Config mode", "Config bits"]: Rectangle {
+                                GhostButton {
+                                    height: 38px;
+                                    label: "Open Project";
+                                    enabled: !root.busy;
+                                    clicked => { root.request-open-project(); }
+                                }
+                                for row in root.project-summary-rows: Rectangle {
                                     height: 40px;
                                     border-radius: 6px;
                                     background: #f8fafc;
@@ -834,23 +850,39 @@ export component AppWindow inherits Window {
                             width: parent.width - 376px;
                             height: parent.height - 40px;
                             title: "Plan Preview";
-                            subtitle: "AI-readable before any write operation.";
+                            subtitle: root.project-title;
                             VerticalLayout {
                                 alignment: start;
                                 spacing: 10px;
-                                for row in ["Parse TOML", "Match target in catalog", "Resolve firmware", "Validate config fields", "Build guarded flash plan"]: Rectangle {
+                                for row[index] in root.project-plan-rows: Rectangle {
+                                    height: 42px;
+                                    border-radius: 6px;
+                                    background: root.project-plan-kinds[index] == "blocked" ? #fff7e8 : root.project-plan-kinds[index] == "ready" ? #effaf4 : #f8fafc;
+                                    border-width: 1px;
+                                    border-color: root.project-plan-kinds[index] == "blocked" ? #f0d19d : #e2e8f0;
+                                    Text { text: row; color: root.project-plan-kinds[index] == "blocked" ? #8b5a16 : #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                }
+                                if root.project-plan-rows.length == 0: Rectangle {
                                     height: 42px;
                                     border-radius: 6px;
                                     background: #f8fafc;
                                     border-width: 1px;
                                     border-color: #e2e8f0;
-                                    Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                    Text { text: "Open a project file to create a guarded plan."; color: #64748b; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                }
+                                for row in root.project-issue-rows: Rectangle {
+                                    height: 36px;
+                                    border-radius: 6px;
+                                    background: #fff7e8;
+                                    border-width: 1px;
+                                    border-color: #f0d19d;
+                                    Text { text: row; color: #8b5a16; font-size: 11px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
                                 }
                                 StatusPill {
                                     width: 128px;
-                                    label: "JSON PLAN READY";
-                                    fill: #e6f5ed;
-                                    text-color: #16614d;
+                                    label: root.project-plan-status == "ready" ? "PROJECT READY" : "PROJECT BLOCKED";
+                                    fill: root.project-plan-status == "ready" ? #e6f5ed : #fff2d9;
+                                    text-color: root.project-plan-status == "ready" ? #16614d : #805200;
                                 }
                                 Rectangle {
                                     height: 72px;
@@ -860,12 +892,12 @@ export component AppWindow inherits Window {
                                     border-color: #ded6f5;
                                     VerticalLayout {
                                         padding: 12px;
-                                        spacing: 4px;
-                                        Text { text: "AI Entry"; color: #4d3a8a; font-size: 12px; font-weight: 760; overflow: elide; }
-                                        Text { text: "meowisp ai project plan --file meowisp.project.toml --json"; color: #4d3a8a; font-size: 12px; font-weight: 650; wrap: word-wrap; }
+                                            spacing: 4px;
+                                            Text { text: "AI Entry"; color: #4d3a8a; font-size: 12px; font-weight: 760; overflow: elide; }
+                                            Text { text: root.project-ai-command; color: #4d3a8a; font-size: 12px; font-weight: 650; wrap: word-wrap; }
+                                        }
                                     }
                                 }
-                            }
                         }
                     }
 
