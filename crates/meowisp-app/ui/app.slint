@@ -810,11 +810,62 @@ export component AppWindow inherits Window {
                         Panel {
                             x: 20px;
                             y: 20px;
-                            width: parent.width - 40px;
+                            width: 320px;
                             height: parent.height - 40px;
-                            title: "Project Intent";
-                            subtitle: "TOML project files will map product intent to device-aware operation plans.";
-                            Text { text: "No project loaded. Planned states: parsed project, target mismatch, ready to plan, ready to apply."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                            title: "Project File";
+                            subtitle: "meowisp.project.toml";
+                            VerticalLayout {
+                                alignment: start;
+                                spacing: 10px;
+                                for row in ["Project name", "Expected chip", "Firmware path", "Config mode", "Config bits"]: Rectangle {
+                                    height: 40px;
+                                    border-radius: 6px;
+                                    background: #f8fafc;
+                                    border-width: 1px;
+                                    border-color: #e2e8f0;
+                                    Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                }
+                            }
+                        }
+
+                        Panel {
+                            x: 356px;
+                            y: 20px;
+                            width: parent.width - 376px;
+                            height: parent.height - 40px;
+                            title: "Plan Preview";
+                            subtitle: "AI-readable before any write operation.";
+                            VerticalLayout {
+                                alignment: start;
+                                spacing: 10px;
+                                for row in ["Parse TOML", "Match target in catalog", "Resolve firmware", "Validate config fields", "Build guarded flash plan"]: Rectangle {
+                                    height: 42px;
+                                    border-radius: 6px;
+                                    background: #f8fafc;
+                                    border-width: 1px;
+                                    border-color: #e2e8f0;
+                                    Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                }
+                                StatusPill {
+                                    width: 128px;
+                                    label: "JSON PLAN READY";
+                                    fill: #e6f5ed;
+                                    text-color: #16614d;
+                                }
+                                Rectangle {
+                                    height: 72px;
+                                    border-radius: 6px;
+                                    background: #f7f4ff;
+                                    border-width: 1px;
+                                    border-color: #ded6f5;
+                                    VerticalLayout {
+                                        padding: 12px;
+                                        spacing: 4px;
+                                        Text { text: "AI Entry"; color: #4d3a8a; font-size: 12px; font-weight: 760; overflow: elide; }
+                                        Text { text: "meowisp ai project plan --file meowisp.project.toml --json"; color: #4d3a8a; font-size: 12px; font-weight: 650; wrap: word-wrap; }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -910,7 +961,7 @@ export component AppWindow inherits Window {
                                 subtitle: "Available now";
                                 VerticalLayout {
                                     spacing: 8px;
-                                    for row in ["meowisp ai catalog --json", "meowisp ai probe --json", "meowisp ai flash --file fw.bin --plan --json", "meowisp ai memory schema --chip CH569 --json", "meowisp ai config schema --chip CH569 --json"]: Rectangle {
+                                    for row in ["meowisp ai catalog --json", "meowisp ai probe --json", "meowisp ai flash --file fw.bin --plan --json", "meowisp ai memory schema --chip CH569 --json", "meowisp ai config schema --chip CH569 --json", "meowisp ai project plan --file meowisp.project.toml --json"]: Rectangle {
                                         height: 38px;
                                         border-radius: 6px;
                                         background: #f7f4ff;

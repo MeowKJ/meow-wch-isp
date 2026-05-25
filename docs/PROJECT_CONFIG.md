@@ -46,10 +46,19 @@ Modes:
 Planned commands:
 
 ```bash
+meowisp ai project plan --file meowisp.project.toml --json
 meowisp project check meowisp.project.toml
 meowisp project flash meowisp.project.toml
 meowisp project apply-config meowisp.project.toml --yes
 ```
+
+Implemented now:
+
+- `meowisp ai project plan --file meowisp.project.toml --json`
+- target chip matching against the bundled rs-wchisp catalog
+- firmware path resolution relative to the project file
+- config bit validation against the target register schema
+- embedded guarded flash plan when the firmware file is present
 
 The UI should expose project config as a left-to-right flow:
 

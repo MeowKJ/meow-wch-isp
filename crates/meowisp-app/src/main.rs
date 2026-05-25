@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser, Subcommand};
-use meowisp_core::{catalog, isp, online, permission, plan};
+use meowisp_core::{catalog, isp, online, permission, plan, project};
 use png::{BlendOp, ColorType, DisposeOp, FrameControl, Transformations};
 use rfd::FileDialog;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
@@ -142,6 +142,10 @@ enum AiCommand {
         #[command(subcommand)]
         command: AiConfigCommand,
     },
+    Project {
+        #[command(subcommand)]
+        command: AiProjectCommand,
+    },
     Flash {
         #[arg(short = 'f', long = "file", value_name = "FILE")]
         file: String,
@@ -169,6 +173,16 @@ enum AiConfigCommand {
     Schema {
         #[arg(long = "chip", value_name = "CHIP")]
         chip: Option<String>,
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum AiProjectCommand {
+    Plan {
+        #[arg(short = 'f', long = "file", value_name = "FILE")]
+        file: String,
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
@@ -257,6 +271,11 @@ fn run_cli(cli: Cli) -> Result<()> {
             AiCommand::Config { command } => match command {
                 AiConfigCommand::Schema { chip, json } => {
                     print_ai_config_schema(chip.as_deref(), *json)?;
+                }
+            },
+            AiCommand::Project { command } => match command {
+                AiProjectCommand::Plan { file, json } => {
+                    print_ai_project_plan(PathBuf::from(file), *json)?;
                 }
             },
             AiCommand::Flash {
@@ -437,6 +456,9 @@ fn cli_outputs_json(cli: &Cli) -> bool {
                     }
                     | AiCommand::Config {
                         command: AiConfigCommand::Schema { json: true, .. },
+                    }
+                    | AiCommand::Project {
+                        command: AiProjectCommand::Plan { json: true, .. },
                     }
                     | AiCommand::Flash { json: true, .. }
             }
@@ -657,6 +679,42 @@ fn print_flash_plan(path: PathBuf, probe_device: bool, json: bool) -> Result<()>
     Ok(())
 }
 
+fn print_ai_project_plan(path: PathBuf, json: bool) -> Result<()> {
+    let plan = project::plan_project_from_file(&path).context("failed to build project plan")?;
+    if json {
+        println!("{}", project::project_plan_json_pretty(&plan)?);
+        return Ok(());
+    }
+
+    println!("Project plan: {}", plan.project.name);
+    println!(
+        "Target: {}{}",
+        plan.target.chip,
+        plan.target
+            .family
+            .as_ref()
+            .map(|family| format!(" ({family})"))
+            .unwrap_or_default()
+    );
+    println!(
+        "Firmware: {} [{}]",
+        plan.firmware.resolved_path,
+        if plan.firmware.exists {
+            "found"
+        } else {
+            "missing"
+        }
+    );
+    println!("Config bits: {}", plan.config.requested_bit_count);
+    if !plan.blockers.is_empty() {
+        println!("Blockers:");
+        for blocker in plan.blockers {
+            println!("- {blocker}");
+        }
+    }
+    Ok(())
+}
+
 fn ui_font_family() -> &'static str {
     if cfg!(target_os = "macos") {
         "Hiragino Sans GB"
@@ -678,6 +736,20 @@ fn brand_font_family() -> &'static str {
         "Noto Sans"
     } else {
         ""
+    }
+}
+
+fn initial_ui_page_from_env() -> Option<i32> {
+    let value = std::env::var("MEOWISP_UI_PAGE").ok()?;
+    match value.to_ascii_lowercase().as_str() {
+        "dashboard" | "home" => Some(0),
+        "flash" => Some(1),
+        "memory" => Some(2),
+        "config" | "configuration" => Some(3),
+        "project" => Some(4),
+        "catalog" => Some(5),
+        "automation" | "ai" => Some(6),
+        _ => None,
     }
 }
 
@@ -1562,6 +1634,9 @@ fn main() -> Result<(), slint::PlatformError> {
     app.set_app_version(APP_VERSION.into());
     app.set_ui_font_family(ui_font_family().into());
     app.set_brand_font_family(brand_font_family().into());
+    if let Some(page) = initial_ui_page_from_env() {
+        app.set_active_page(page);
+    }
     app.set_status_text("准备就绪".into());
     set_idle_chip(&app);
     app.set_firmware_name("未选择固件".into());

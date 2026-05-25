@@ -30,6 +30,7 @@ meowisp ai memory schema --chip CH569 --json
 meowisp ai config read --json
 meowisp ai config schema --chip CH569 --json
 meowisp ai config write --set CFG_BOOT_EN=1 --set CFG_DEBUG_EN=1 --json
+meowisp ai project plan --file meowisp.project.toml --json
 ```
 
 Catalog response:
@@ -136,6 +137,38 @@ through the same `OperationPlan`.
     { "name": "reset", "ok": true }
   ],
   "messages": []
+}
+```
+
+Project plan response:
+
+Implemented now: `meowisp ai project plan --file meowisp.project.toml --json`
+parses project intent, resolves firmware relative to the project file, matches
+the target chip against the bundled catalog, validates requested config fields,
+and embeds a guarded flash plan when the firmware exists.
+
+```json
+{
+  "ok": true,
+  "operation": "project.plan",
+  "project": { "name": "CH592 keyboard bootloader" },
+  "target": {
+    "chip": "CH592",
+    "matched": true,
+    "family": "CH59x Series",
+    "flash_size": 458752
+  },
+  "firmware": {
+    "path": "dist/CH592F-5KEY-full.bin",
+    "exists": true,
+    "verify": true
+  },
+  "config": {
+    "mode": "check",
+    "requested_bit_count": 3
+  },
+  "apply_ready": true,
+  "blockers": []
 }
 ```
 

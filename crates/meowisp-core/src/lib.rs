@@ -3,3 +3,4 @@ pub mod isp;
 pub mod online;
 pub mod permission;
 pub mod plan;
+pub mod project;
