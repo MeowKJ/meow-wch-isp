@@ -77,49 +77,6 @@ component GhostButton inherits Rectangle {
     }
 }
 
-component NavItem inherits Rectangle {
-    in property <string> icon;
-    in property <string> label;
-    in property <bool> active: false;
-    callback clicked;
-
-    height: 36px;
-    border-radius: 6px;
-    background: root.active ? #e9f4f0 : nav-touch.has-hover ? #f4f7f9 : transparent;
-    border-width: root.active ? 1px : 0px;
-    border-color: #c8ded6;
-
-    animate background { duration: 150ms; easing: ease; }
-
-    nav-touch := TouchArea {
-        clicked => { root.clicked(); }
-        mouse-cursor: pointer;
-    }
-
-    HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        spacing: 8px;
-
-        Text {
-            text: root.icon;
-            color: root.active ? #16614d : #64748b;
-            font-size: 14px;
-            font-weight: 700;
-            vertical-alignment: center;
-        }
-
-        Text {
-            text: root.label;
-            color: root.active ? #123f35 : #445365;
-            font-size: 13px;
-            font-weight: root.active ? 750 : 600;
-            vertical-alignment: center;
-            overflow: elide;
-        }
-    }
-}
-
 component Panel inherits Rectangle {
     in property <string> title;
     in property <string> subtitle: "";
@@ -158,42 +115,6 @@ component Panel inherits Rectangle {
     }
 }
 
-component Metric inherits Rectangle {
-    in property <string> label;
-    in property <string> value;
-    in property <brush> accent: #256f5a;
-
-    height: 58px;
-    border-radius: 6px;
-    background: #f8fafc;
-    border-width: 1px;
-    border-color: #e2e8f0;
-
-    VerticalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        padding-top: 8px;
-        padding-bottom: 7px;
-        spacing: 3px;
-
-        Text {
-            text: root.label;
-            color: #64748b;
-            font-size: 10px;
-            font-weight: 650;
-            overflow: elide;
-        }
-
-        Text {
-            text: root.value;
-            color: root.accent;
-            font-size: 18px;
-            font-weight: 800;
-            overflow: elide;
-        }
-    }
-}
-
 component StatusPill inherits Rectangle {
     in property <string> label;
     in property <brush> fill: #edf7f2;
@@ -221,7 +142,7 @@ export component AppWindow inherits Window {
     in-out property <string> ui-font-family: "";
     in-out property <string> brand-font-family: "";
     in-out property <int> cat-mood: 0;
-    in-out property <int> active-page: 0;
+    in-out property <int> active-page: 1;
 
     in-out property <string> chip-name: "";
     in-out property <string> chip-category: "";
@@ -305,8 +226,8 @@ export component AppWindow inherits Window {
     callback request-dismiss-error();
 
     title: root.app-version == "dev" ? "Meow WCH ISP dev" : "Meow WCH ISP v" + root.app-version;
-    width: 1040px;
-    height: 720px;
+    width: 760px;
+    height: 520px;
     background: #eef2f5;
     default-font-family: root.ui-font-family;
 
@@ -315,128 +236,13 @@ export component AppWindow inherits Window {
         height: 100%;
         background: #eef2f5;
 
-            Rectangle {
-                x: 0px;
-                y: 0px;
-                width: 216px;
-                height: parent.height;
-                background: #f8fafc;
-                border-width: 0px;
+        VerticalLayout {
+            width: 100%;
+            height: 100%;
+            spacing: 0px;
 
                 Rectangle {
-                    x: parent.width - 1px;
-                    width: 1px;
-                    height: parent.height;
-                    background: #d9e1ea;
-                }
-
-                VerticalLayout {
-                    padding-left: 16px;
-                    padding-right: 14px;
-                    padding-top: 18px;
-                    padding-bottom: 14px;
-                    spacing: 14px;
-
-                    HorizontalLayout {
-                        height: 42px;
-                        spacing: 10px;
-
-                        Rectangle {
-                            width: 34px;
-                            height: 34px;
-                            border-radius: 8px;
-                            background: #e9f4f0;
-                            border-width: 1px;
-                            border-color: #c8ded6;
-
-                            Image {
-                                source: root.cat-mood == 3
-                                    ? @image-url("../../../assets/crying_cat_3d.png")
-                                    : root.cat-mood == 2
-                                        ? @image-url("../../../assets/smiling_cat_with_heart-eyes_3d.png")
-                                        : @image-url("../../../assets/grinning_cat_3d.png");
-                                width: 26px;
-                                height: 26px;
-                                x: 4px;
-                                y: 4px;
-                            }
-                        }
-
-                        VerticalLayout {
-                            spacing: 1px;
-
-                            Text {
-                                text: "Meow WCH ISP";
-                                color: #111827;
-                                font-family: root.brand-font-family;
-                                font-size: 15px;
-                                font-weight: 800;
-                                overflow: elide;
-                            }
-
-                            Text {
-                                text: root.app-version == "dev" ? "development build" : "v" + root.app-version;
-                                color: #728095;
-                                font-size: 10px;
-                                font-weight: 600;
-                                overflow: elide;
-                            }
-                        }
-                    }
-
-                    VerticalLayout {
-                        spacing: 6px;
-                        NavItem { icon: "⌂"; label: "Dashboard"; active: root.active-page == 0; clicked => { root.active-page = 0; } }
-                        NavItem { icon: "↯"; label: "Flash"; active: root.active-page == 1; clicked => { root.active-page = 1; } }
-                        NavItem { icon: "▦"; label: "Memory"; active: root.active-page == 2; clicked => { root.active-page = 2; } }
-                        NavItem { icon: "⚙"; label: "Config"; active: root.active-page == 3; clicked => { root.active-page = 3; } }
-                        NavItem { icon: "◇"; label: "Project"; active: root.active-page == 4; clicked => { root.active-page = 4; } }
-                        NavItem { icon: "⌕"; label: "Catalog"; active: root.active-page == 5; clicked => { root.active-page = 5; } }
-                        NavItem { icon: "AI"; label: "Automation"; active: root.active-page == 6; clicked => { root.active-page = 6; } }
-                    }
-
-                    Rectangle { vertical-stretch: 1; background: transparent; }
-
-                    Panel {
-                        height: 148px;
-                        title: "Session";
-                        subtitle: root.device-connected ? root.device-name : "No device";
-
-                        VerticalLayout {
-                            spacing: 8px;
-
-                            StatusPill {
-                                width: 100%;
-                                label: root.busy ? "BUSY" : root.device-connected ? "CONNECTED" : "IDLE";
-                                fill: root.busy ? #fff1d6 : root.device-connected ? #e6f5ed : #edf1f5;
-                                text-color: root.busy ? #8a5600 : root.device-connected ? #16614d : #64748b;
-                            }
-
-                            Text {
-                                text: root.status-text;
-                                color: #435065;
-                                font-size: 11px;
-                                wrap: word-wrap;
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                x: 216px;
-                y: 0px;
-                width: root.width - 216px;
-                height: parent.height;
-                background: transparent;
-
-                VerticalLayout {
-                    width: 100%;
-                    height: 100%;
-                    spacing: 0px;
-
-                Rectangle {
-                    height: 56px;
+                    height: 78px;
                     background: #ffffff;
                     border-width: 0px;
 
@@ -448,37 +254,100 @@ export component AppWindow inherits Window {
                     }
 
                     HorizontalLayout {
-                        padding-left: 22px;
-                        padding-right: 18px;
-                        spacing: 12px;
+                        height: 40px;
+                        padding-left: 14px;
+                        padding-right: 12px;
+                        spacing: 8px;
 
-                        Text {
-                            text: root.active-page == 0 ? "Dashboard"
-                                : root.active-page == 1 ? "Flash Operation"
-                                : root.active-page == 2 ? "Memory Regions"
-                                : root.active-page == 3 ? "Configuration"
-                                : root.active-page == 4 ? "Project"
-                                : root.active-page == 5 ? "Device Catalog"
-                                : "Automation";
-                            color: #101827;
-                            font-size: 18px;
-                            font-weight: 800;
-                            vertical-alignment: center;
-                            horizontal-stretch: 1;
+                        Rectangle {
+                            width: 30px;
+                            height: 30px;
+                            border-radius: 7px;
+                            background: #e9f4f0;
+                            border-width: 1px;
+                            border-color: #c8ded6;
+
+                            Image {
+                                source: root.cat-mood == 3
+                                    ? @image-url("../../../assets/crying_cat_3d.png")
+                                    : root.cat-mood == 2
+                                        ? @image-url("../../../assets/smiling_cat_with_heart-eyes_3d.png")
+                                        : @image-url("../../../assets/grinning_cat_3d.png");
+                                width: 22px;
+                                height: 22px;
+                                x: 4px;
+                                y: 4px;
+                            }
                         }
 
+                        Text {
+                            width: 112px;
+                            text: "Meow WCH ISP";
+                            color: #111827;
+                            font-family: root.brand-font-family;
+                            font-size: 14px;
+                            font-weight: 850;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        GhostButton { width: 58px; height: 28px; label: "Flash"; accent: root.active-page == 1 || root.active-page == 0 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 1; } }
+                        GhostButton { width: 64px; height: 28px; label: "Project"; accent: root.active-page == 4 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 4; } }
+                        GhostButton { width: 62px; height: 28px; label: "Config"; accent: root.active-page == 3 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 3; } }
+                        GhostButton { width: 62px; height: 28px; label: "Memory"; accent: root.active-page == 2 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 2; } }
+                        GhostButton { width: 62px; height: 28px; label: "Catalog"; accent: root.active-page == 5 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 5; } }
+                        GhostButton { width: 44px; height: 28px; label: "AI"; accent: root.active-page == 6 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 6; } }
+
+                        Rectangle { horizontal-stretch: 1; background: transparent; }
+
                         StatusPill {
-                            width: 98px;
-                            label: root.show-permission-bar ? "USB PERMISSION" : "USB READY";
-                            fill: root.show-permission-bar ? #fff2d9 : #e9f4f0;
-                            text-color: root.show-permission-bar ? #805200 : #16614d;
+                            width: 92px;
+                            label: root.busy ? "BUSY" : root.device-connected ? "CONNECTED" : root.show-permission-bar ? "USB PERM" : "READY";
+                            fill: root.busy ? #fff1d6 : root.device-connected ? #e6f5ed : root.show-permission-bar ? #fff2d9 : #edf1f5;
+                            text-color: root.busy ? #8a5600 : root.device-connected ? #16614d : root.show-permission-bar ? #805200 : #64748b;
                         }
 
                         GhostButton {
-                            width: 92px;
-                            height: 32px;
+                            width: 72px;
+                            height: 28px;
                             label: "Copy Log";
                             clicked => { root.request-copy-log(); }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        y: 42px;
+                        height: 35px;
+                        padding-left: 14px;
+                        padding-right: 12px;
+                        spacing: 8px;
+
+                        Text {
+                            text: root.device-connected ? root.device-name : "No device";
+                            color: root.device-connected ? #16614d : #8b5a16;
+                            font-size: 12px;
+                            font-weight: 750;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+
+                        Text {
+                            text: root.has-firmware ? root.firmware-name : "No firmware selected";
+                            color: #475569;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                            overflow: elide;
+                        }
+
+                        if root.show-permission-bar: GhostButton {
+                            width: 82px;
+                            height: 26px;
+                            label: "Fix USB";
+                            accent: #f1a947;
+                            text-color: #ffffff;
+                            clicked => { root.request-fix-permission(); }
                         }
                     }
                 }
@@ -488,254 +357,96 @@ export component AppWindow inherits Window {
                     vertical-stretch: 1;
                     background: #eef2f5;
 
-                    if root.active-page == 0: ScrollView {
+                    if root.active-page == 0 || root.active-page == 1: ScrollView {
                         width: parent.width;
                         height: parent.height;
 
-                        VerticalLayout {
-                            padding: 20px;
-                            spacing: 16px;
-
-                            Panel {
-                                height: 128px;
-                                title: root.device-connected ? root.device-name : "No WCH ISP device";
-                                subtitle: root.device-connected ? root.device-family : "Connect a USB or serial ISP target, then scan or start a guarded plan.";
-
-                                HorizontalLayout {
-                                    spacing: 14px;
-
-                                    Metric { horizontal-stretch: 1; label: "Transport"; value: root.device-connected ? "USB" : "None"; }
-                                    Metric { horizontal-stretch: 1; label: "Family"; value: root.device-family != "" ? root.device-family : "Unknown"; accent: #5a45a6; }
-                                    Metric { horizontal-stretch: 1; label: "Firmware"; value: root.has-firmware ? "Selected" : "Missing"; accent: root.has-firmware ? #256f5a : #9b5f1f; }
-                                    Metric { horizontal-stretch: 1; label: "Catalog"; value: root.catalog-variant-count + " chips"; accent: #2f6fa3; }
-                                }
-                            }
-
-                            HorizontalLayout {
-                                spacing: 16px;
+                        HorizontalLayout {
+                            padding: 12px;
+                            spacing: 12px;
 
                                 Panel {
-                                    horizontal-stretch: 58;
-                                    height: 332px;
-                                    title: "Available Operations";
-                                    subtitle: "Destructive actions stay disabled until device and input are valid.";
+                                    width: 270px;
+                                    title: "Flash";
+                                    subtitle: root.flash-plan-ready ? root.flash-plan-summary : "Probe, pick firmware, write.";
 
                                     VerticalLayout {
-                                        spacing: 10px;
-
-                                        Rectangle {
-                                            height: 68px;
-                                            border-radius: 6px;
-                                            background: #f8fafc;
-                                            border-width: 1px;
-                                            border-color: #e2e8f0;
-
-                                            HorizontalLayout {
-                                                padding: 12px;
-                                                spacing: 10px;
-
-                                                VerticalLayout {
-                                                    horizontal-stretch: 1;
-                                                    spacing: 4px;
-
-                                                    Text { text: root.has-firmware ? root.firmware-name : "No firmware selected"; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
-                                                    Text { text: root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "BIN file or online release asset"; color: #64748b; font-size: 11px; overflow: elide; }
-                                                }
-
-                                                GhostButton { width: 92px; label: "Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
-                                                GhostButton { width: 96px; label: "Online"; enabled: !root.busy; clicked => { root.request-open-online(); } }
-                                            }
-                                        }
-
-                                        HorizontalLayout {
-                                            spacing: 10px;
-
-                                            PrimaryButton {
-                                                horizontal-stretch: 1;
-                                                height: 42px;
-                                                label: "Apply Flash";
-                                                enabled: !root.busy && root.device-connected && root.has-firmware;
-                                                clicked => { root.request-flash-bin(); }
-                                            }
-
-                                            GhostButton {
-                                                horizontal-stretch: 1;
-                                                height: 42px;
-                                                label: "Verify";
-                                                enabled: !root.busy && root.device-connected && root.has-firmware;
-                                                clicked => { root.request-verify-bin(); }
-                                            }
-                                        }
-
-                                        HorizontalLayout {
-                                            spacing: 10px;
-
-                                            GhostButton {
-                                                horizontal-stretch: 1;
-                                                height: 38px;
-                                                label: "Erase Codeflash";
-                                                accent: #fff4e7;
-                                                text-color: #8b4f16;
-                                                enabled: false;
-                                                clicked => { root.request-erase-code(); }
-                                            }
-
-                                            GhostButton {
-                                                horizontal-stretch: 1;
-                                                height: 38px;
-                                                label: "Erase Dataflash";
-                                                accent: #fff4e7;
-                                                text-color: #8b4f16;
-                                                enabled: false;
-                                                clicked => { root.request-erase-data(); }
-                                            }
-                                        }
-
-                                        Text {
-                                            text: root.device-connected ? "Flash can be planned after firmware selection. Erase actions will unlock only after a dedicated plan preview lands." : "Write operations are disabled because no target has been identified.";
-                                            color: #66758a;
-                                            font-size: 11px;
-                                            wrap: word-wrap;
-                                        }
-                                    }
-                                }
-
-                                Panel {
-                                    horizontal-stretch: 42;
-                                    height: 332px;
-                                    title: "Health";
-                                    subtitle: "Permissions, AI surface and recent event.";
-
-                                    VerticalLayout {
-                                        spacing: 10px;
-
-                                        if root.show-permission-bar: Rectangle {
-                                            height: 70px;
-                                            border-radius: 6px;
-                                            background: #fff7e8;
-                                            border-width: 1px;
-                                            border-color: #f0d19d;
-
-                                            HorizontalLayout {
-                                                padding: 12px;
-                                                spacing: 10px;
-
-                                                Text { text: "USB permission is not configured."; color: #7a4b00; font-size: 12px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; wrap: word-wrap; }
-                                                GhostButton { width: 94px; label: "Install"; accent: #f1a947; text-color: #ffffff; clicked => { root.request-fix-permission(); } }
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            height: 86px;
-                                            border-radius: 6px;
-                                            background: #f8fafc;
-                                            border-width: 1px;
-                                            border-color: #e2e8f0;
-
-                                            VerticalLayout {
-                                                padding: 12px;
-                                                spacing: 5px;
-                                                Text { text: root.log-title; color: #16202e; font-size: 13px; font-weight: 760; overflow: elide; }
-                                                Text { text: root.log-text; color: #64748b; font-size: 11px; wrap: word-wrap; }
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            height: 62px;
-                                            border-radius: 6px;
-                                            background: #f7f4ff;
-                                            border-width: 1px;
-                                            border-color: #ded6f5;
-
-                                            VerticalLayout {
-                                                padding: 12px;
-                                                spacing: 3px;
-                                                Text { text: "AI control"; color: #4d3a8a; font-size: 12px; font-weight: 760; }
-                                                Text { text: "Catalog endpoint is available. Operation planning is next."; color: #6e62a4; font-size: 11px; overflow: elide; }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if root.active-page == 1: ScrollView {
-                        width: parent.width;
-                        height: parent.height;
-
-                            Panel {
-                                x: 20px;
-                                y: 20px;
-                                width: 360px;
-                                height: parent.height - 40px;
-                                title: "Firmware Source";
-                                subtitle: root.device-connected ? root.device-name : "Probe, project, or firmware.";
-
-                                VerticalLayout {
-                                    spacing: 10px;
-                                    PrimaryButton { height: 40px; label: "Probe Device"; enabled: !root.busy; clicked => { root.request-probe-device(); } }
-                                    HorizontalLayout {
                                         spacing: 8px;
-                                        GhostButton { horizontal-stretch: 1; height: 38px; label: "Open Project"; enabled: !root.busy; clicked => { root.request-open-project(); } }
-                                        GhostButton { horizontal-stretch: 1; height: 38px; label: "Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
-                                    }
-                                    GhostButton { height: 38px; label: "Select Online Firmware"; enabled: !root.busy; clicked => { root.request-open-online(); } }
-                                    Rectangle {
-                                        height: 108px;
-                                        border-radius: 6px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        VerticalLayout {
-                                            padding: 12px;
-                                            spacing: 4px;
-                                            Text { text: root.firmware-name; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
-                                            Text { text: root.flash-plan-ready ? root.flash-plan-summary : root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No parsed target metadata"; color: #64748b; font-size: 11px; overflow: elide; }
-                                            Text { text: root.device-connected ? "Device: " + root.device-name : "Device: not detected"; color: root.device-connected ? #16614d : #8b5a16; font-size: 11px; font-weight: 650; overflow: elide; }
+
+                                        PrimaryButton { height: 36px; label: "Probe"; enabled: !root.busy; clicked => { root.request-probe-device(); } }
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            GhostButton { horizontal-stretch: 1; height: 34px; label: "Project"; enabled: !root.busy; clicked => { root.request-open-project(); } }
+                                            GhostButton { horizontal-stretch: 1; height: 34px; label: "BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
+                                            GhostButton { horizontal-stretch: 1; height: 34px; label: "Online"; enabled: !root.busy; clicked => { root.request-open-online(); } }
                                         }
+
+                                        Rectangle {
+                                            height: 82px;
+                                            border-radius: 6px;
+                                            background: #f8fafc;
+                                            border-width: 1px;
+                                            border-color: #e2e8f0;
+
+                                            VerticalLayout {
+                                                padding: 10px;
+                                                spacing: 4px;
+
+                                                Text { text: root.firmware-name; color: #152033; font-size: 12px; font-weight: 760; overflow: elide; }
+                                                Text { text: root.flash-plan-ready ? root.flash-plan-summary : root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No target metadata"; color: #64748b; font-size: 10px; overflow: elide; }
+                                                Text { text: root.project-loaded ? root.project-title : "Project optional"; color: #64748b; font-size: 10px; overflow: elide; }
+                                            }
+                                        }
+
+                                        PrimaryButton { height: 38px; label: "Write"; enabled: !root.busy && root.device-connected && root.has-firmware && root.flash-plan-ready; clicked => { root.request-flash-bin(); } }
+                                        GhostButton { height: 34px; label: "Verify"; enabled: !root.busy && root.device-connected && root.has-firmware; clicked => { root.request-verify-bin(); } }
                                     }
                                 }
-                            }
 
-                            Panel {
-                                x: 396px;
-                                y: 20px;
-                                width: parent.width - 416px;
-                                height: parent.height - 40px;
-                                title: "Operation Plan";
-                                subtitle: root.flash-plan-summary;
+                                Panel {
+                                    horizontal-stretch: 1;
+                                    title: "Plan";
+                                    subtitle: root.flash-plan-status == "ready" ? "Ready" : "Waiting";
 
-                                VerticalLayout {
-                                    spacing: 9px;
-                                    for step[index] in root.flash-plan-steps: Rectangle {
-                                        height: 38px;
-                                        border-radius: 6px;
-                                        background: root.flash-plan-risks[index] == "destructive" ? #fff7e8 : root.flash-plan-risks[index] == "write" ? #effaf4 : #f8fafc;
-                                        border-width: 1px;
-                                        border-color: root.flash-plan-risks[index] == "destructive" ? #f0d19d : #e2e8f0;
-                                        HorizontalLayout {
-                                            padding-left: 12px;
-                                            padding-right: 12px;
-                                            Text { text: step; color: #1f2937; font-size: 12px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
-                                            Text { text: root.flash-plan-risks[index]; color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : root.flash-plan-risks[index] == "write" ? #16614d : #64748b; font-size: 11px; vertical-alignment: center; }
+                                    VerticalLayout {
+                                        spacing: 8px;
+                                        for step[index] in root.flash-plan-steps: Rectangle {
+                                            height: 32px;
+                                            border-radius: 6px;
+                                            background: root.flash-plan-risks[index] == "destructive" ? #fff7e8 : root.flash-plan-risks[index] == "write" ? #effaf4 : #f8fafc;
+                                            border-width: 1px;
+                                            border-color: root.flash-plan-risks[index] == "destructive" ? #f0d19d : #e2e8f0;
+                                            HorizontalLayout {
+                                                padding-left: 10px;
+                                                padding-right: 10px;
+                                                spacing: 8px;
+                                                Text { text: step; color: #1f2937; font-size: 11px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
+                                                Text { text: root.flash-plan-risks[index]; color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : root.flash-plan-risks[index] == "write" ? #16614d : #64748b; font-size: 10px; vertical-alignment: center; }
+                                            }
+                                        }
+                                        if root.flash-plan-steps.length == 0: Rectangle {
+                                            height: 44px;
+                                            border-radius: 6px;
+                                            background: #f8fafc;
+                                            border-width: 1px;
+                                            border-color: #e2e8f0;
+                                            Text { text: "Select firmware to build a guarded plan."; color: #64748b; font-size: 12px; x: 12px; vertical-alignment: center; overflow: elide; }
+                                        }
+                                        Rectangle {
+                                            height: 58px;
+                                            border-radius: 6px;
+                                            background: #f8fafc;
+                                            border-width: 1px;
+                                            border-color: #e2e8f0;
+                                            VerticalLayout {
+                                                padding: 10px;
+                                                spacing: 3px;
+                                                Text { text: root.log-title; color: #16202e; font-size: 12px; font-weight: 760; overflow: elide; }
+                                                Text { text: root.log-text; color: #64748b; font-size: 10px; overflow: elide; }
+                                            }
                                         }
                                     }
-                                    if root.flash-plan-steps.length == 0: Rectangle {
-                                        height: 46px;
-                                        border-radius: 6px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: "No plan yet. Select a firmware file or online release."; color: #64748b; font-size: 12px; x: 12px; vertical-alignment: center; overflow: elide; }
-                                    }
-                                    StatusPill {
-                                        width: 112px;
-                                        label: root.flash-plan-status == "ready" ? "PLAN READY" : "PLAN BLOCKED";
-                                        fill: root.flash-plan-status == "ready" ? #e6f5ed : #fff2d9;
-                                        text-color: root.flash-plan-status == "ready" ? #16614d : #805200;
-                                    }
-                                    PrimaryButton { height: 42px; label: "Apply Flash"; enabled: !root.busy && root.device-connected && root.has-firmware && root.flash-plan-ready; clicked => { root.request-flash-bin(); } }
                                 }
                             }
                     }
@@ -745,16 +456,16 @@ export component AppWindow inherits Window {
                         height: parent.height;
 
                         HorizontalLayout {
-                            padding: 20px;
-                            spacing: 16px;
+                            padding: 12px;
+                            spacing: 12px;
                             Panel {
-                                width: 280px;
+                                width: 240px;
                                 title: "Regions";
-                                subtitle: "Capability-driven memory map.";
+                                subtitle: "Memory map";
                                 VerticalLayout {
-                                    spacing: 8px;
-                                    for row in ["Code flash · read/write/erase", "Data flash · read/write/erase", "Config · read first", "Bootloader · protected"]: Rectangle {
-                                        height: 44px;
+                                    spacing: 7px;
+                                    for row in ["Code flash", "Data flash", "Config", "Bootloader"]: Rectangle {
+                                        height: 34px;
                                         border-radius: 6px;
                                         background: #f8fafc;
                                         border-width: 1px;
@@ -765,14 +476,14 @@ export component AppWindow inherits Window {
                             }
                             Panel {
                                 horizontal-stretch: 1;
-                                title: "Inspector";
-                                subtitle: "Read/export, write/import and erase controls are visible but guarded.";
+                                title: "Actions";
+                                subtitle: "Guarded";
                                 VerticalLayout {
-                                    spacing: 10px;
-                                    GhostButton { height: 38px; label: "Read Selected Region"; enabled: root.device-connected && !root.busy; }
-                                    GhostButton { height: 38px; label: "Import and Plan Write"; enabled: false; }
-                                    GhostButton { height: 38px; label: "Plan Erase"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
-                                    Text { text: "Hex preview and exported files will land here in the next implementation pass."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                                    spacing: 8px;
+                                    GhostButton { height: 34px; label: "Read"; enabled: root.device-connected && !root.busy; }
+                                    GhostButton { height: 34px; label: "Import"; enabled: false; }
+                                    GhostButton { height: 34px; label: "Erase Plan"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
+                                    Text { text: root.device-connected ? root.device-name : "Connect target first"; color: #64748b; font-size: 11px; overflow: elide; }
                                 }
                             }
                         }
@@ -783,16 +494,16 @@ export component AppWindow inherits Window {
                         height: parent.height;
 
                         HorizontalLayout {
-                            padding: 20px;
-                            spacing: 16px;
+                            padding: 12px;
+                            spacing: 12px;
                             Panel {
-                                width: 280px;
+                                width: 250px;
                                 title: "Registers";
-                                subtitle: root.catalog-config-rows.length + " schema rows";
+                                subtitle: root.catalog-config-rows.length + " rows";
                                 ListView {
                                     vertical-stretch: 1;
                                     for row[index] in root.catalog-config-rows: Rectangle {
-                                        height: 38px;
+                                        height: 32px;
                                         border-radius: 6px;
                                         background: index == 0 ? #e9f4f0 : #f8fafc;
                                         border-width: 1px;
@@ -808,25 +519,19 @@ export component AppWindow inherits Window {
                                 VerticalLayout {
                                     spacing: 8px;
                                     for row in root.config-field-rows: Rectangle {
-                                        height: 42px;
+                                        height: 34px;
                                         border-radius: 6px;
                                         background: #f8fafc;
                                         border-width: 1px;
                                         border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; }
+                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
                                     }
-                                }
-                            }
-                            Panel {
-                                width: 300px;
-                                title: "Inspector";
-                                subtitle: "Enum meanings, raw bits and constraints.";
-                                VerticalLayout {
-                                    spacing: 10px;
-                                    Text { text: "Config editing will stay guarded: read current value, preview target diff, then apply only after an explicit plan."; color: #64748b; font-size: 12px; wrap: word-wrap; }
-                                    GhostButton { height: 38px; label: "Read Config"; enabled: root.device-connected && !root.busy; }
-                                    GhostButton { height: 38px; label: "Plan Config Diff"; enabled: false; }
-                                    GhostButton { height: 38px; label: "Apply Config"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        GhostButton { horizontal-stretch: 1; height: 32px; label: "Read"; enabled: root.device-connected && !root.busy; }
+                                        GhostButton { horizontal-stretch: 1; height: 32px; label: "Diff"; enabled: false; }
+                                        GhostButton { horizontal-stretch: 1; height: 32px; label: "Apply"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
+                                    }
                                 }
                             }
                         }
@@ -836,23 +541,23 @@ export component AppWindow inherits Window {
                         width: parent.width;
                         height: parent.height;
                         Panel {
-                            x: 20px;
-                            y: 20px;
-                            width: 320px;
-                            height: parent.height - 40px;
-                            title: "Project File";
+                            x: 12px;
+                            y: 12px;
+                            width: 270px;
+                            height: parent.height - 24px;
+                            title: "Project";
                             subtitle: root.project-subtitle;
                             VerticalLayout {
                                 alignment: start;
                                 spacing: 10px;
                                 GhostButton {
-                                    height: 38px;
+                                    height: 34px;
                                     label: "Open Project";
                                     enabled: !root.busy;
                                     clicked => { root.request-open-project(); }
                                 }
                                 for row in root.project-summary-rows: Rectangle {
-                                    height: 40px;
+                                    height: 34px;
                                     border-radius: 6px;
                                     background: #f8fafc;
                                     border-width: 1px;
@@ -863,17 +568,17 @@ export component AppWindow inherits Window {
                         }
 
                         Panel {
-                            x: 356px;
-                            y: 20px;
-                            width: parent.width - 376px;
-                            height: parent.height - 40px;
-                            title: "Plan Preview";
+                            x: 294px;
+                            y: 12px;
+                            width: parent.width - 306px;
+                            height: parent.height - 24px;
+                            title: "Plan";
                             subtitle: root.project-title;
                             VerticalLayout {
                                 alignment: start;
                                 spacing: 10px;
                                 for row[index] in root.project-plan-rows: Rectangle {
-                                    height: 42px;
+                                    height: 34px;
                                     border-radius: 6px;
                                     background: root.project-plan-kinds[index] == "blocked" ? #fff7e8 : root.project-plan-kinds[index] == "ready" ? #effaf4 : #f8fafc;
                                     border-width: 1px;
@@ -881,7 +586,7 @@ export component AppWindow inherits Window {
                                     Text { text: row; color: root.project-plan-kinds[index] == "blocked" ? #8b5a16 : #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
                                 }
                                 if root.project-plan-rows.length == 0: Rectangle {
-                                    height: 42px;
+                                    height: 34px;
                                     border-radius: 6px;
                                     background: #f8fafc;
                                     border-width: 1px;
@@ -889,7 +594,7 @@ export component AppWindow inherits Window {
                                     Text { text: "Open a project file to create a guarded plan."; color: #64748b; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
                                 }
                                 for row in root.project-issue-rows: Rectangle {
-                                    height: 36px;
+                                    height: 30px;
                                     border-radius: 6px;
                                     background: #fff7e8;
                                     border-width: 1px;
@@ -903,7 +608,7 @@ export component AppWindow inherits Window {
                                     text-color: root.project-plan-status == "ready" ? #16614d : #805200;
                                 }
                                 Rectangle {
-                                    height: 72px;
+                                    height: 58px;
                                     border-radius: 6px;
                                     background: #f7f4ff;
                                     border-width: 1px;
@@ -912,7 +617,7 @@ export component AppWindow inherits Window {
                                         padding: 12px;
                                             spacing: 4px;
                                             Text { text: "AI Entry"; color: #4d3a8a; font-size: 12px; font-weight: 760; overflow: elide; }
-                                            Text { text: root.project-ai-command; color: #4d3a8a; font-size: 12px; font-weight: 650; wrap: word-wrap; }
+                                            Text { text: root.project-ai-command; color: #4d3a8a; font-size: 11px; font-weight: 650; overflow: elide; }
                                         }
                                     }
                                 }
@@ -924,18 +629,18 @@ export component AppWindow inherits Window {
                         height: parent.height;
 
                         HorizontalLayout {
-                            padding: 20px;
-                            spacing: 16px;
+                            padding: 12px;
+                            spacing: 12px;
 
                             Panel {
-                                width: 260px;
+                                width: 210px;
                                 title: "Families";
                                 subtitle: root.catalog-family-count + " families";
 
                                 ListView {
                                     vertical-stretch: 1;
                                     for family[index] in root.catalog-family-names: Rectangle {
-                                        height: 54px;
+                                        height: 42px;
                                         border-radius: 6px;
                                         background: family-touch.has-hover ? #f1f5f9 : #ffffff;
                                         border-width: 1px;
@@ -955,12 +660,12 @@ export component AppWindow inherits Window {
                             Panel {
                                 horizontal-stretch: 1;
                                 title: "Variants";
-                                subtitle: root.catalog-variant-count + " supported devices from rs-wchisp";
+                                subtitle: root.catalog-variant-count + " devices";
 
                                 ListView {
                                     vertical-stretch: 1;
                                     for row in root.catalog-variant-rows: Rectangle {
-                                        height: 34px;
+                                        height: 30px;
                                         border-radius: 5px;
                                         background: #f8fafc;
                                         border-width: 1px;
@@ -970,23 +675,6 @@ export component AppWindow inherits Window {
                                 }
                             }
 
-                            Panel {
-                                width: 260px;
-                                title: "Filters";
-                                subtitle: "Read-only catalog controls.";
-
-                                VerticalLayout {
-                                    spacing: 8px;
-                                    for row in ["USB supported", "Serial supported", "Has config registers", "Has data flash", "Family prefix"]: Rectangle {
-                                        height: 36px;
-                                        border-radius: 6px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; }
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -995,24 +683,24 @@ export component AppWindow inherits Window {
                         height: parent.height;
 
                         HorizontalLayout {
-                            padding: 20px;
-                            spacing: 16px;
+                            padding: 12px;
+                            spacing: 12px;
 
                             Panel {
                                 horizontal-stretch: 1;
-                                title: "Current State JSON";
-                                subtitle: "AI-facing app state preview.";
+                                title: "State";
+                                subtitle: "AI JSON preview";
                                 Text { text: "{ device: " + (root.device-connected ? root.device-name : "null") + ", firmware: " + root.firmware-name + ", status: " + root.status-text + " }"; color: #475569; font-size: 12px; wrap: word-wrap; }
                             }
 
                             Panel {
-                                width: 320px;
+                                width: 300px;
                                 title: "AI Commands";
                                 subtitle: "Available now";
                                 VerticalLayout {
                                     spacing: 8px;
                                     for row[index] in root.ai-command-rows: Rectangle {
-                                        height: 42px;
+                                        height: 36px;
                                         border-radius: 6px;
                                         background: #f7f4ff;
                                         border-width: 1px;
@@ -1083,7 +771,6 @@ export component AppWindow inherits Window {
                     }
                 }
             }
-        }
 
         if root.online-sheet-visible: Rectangle {
             width: 100%;
