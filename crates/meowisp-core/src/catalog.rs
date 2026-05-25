@@ -74,6 +74,7 @@ pub struct DeviceVariantInfo {
     pub transports: TransportCapabilities,
     pub memory_regions: Vec<MemoryRegionInfo>,
     pub config_register_count: usize,
+    pub config_registers: Vec<ConfigRegisterInfo>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -131,11 +132,16 @@ fn family_info(family: &ChipFamily) -> DeviceFamilyInfo {
             let variant_usb = variant.support_usb().or(family.support_usb());
             let variant_serial = variant.support_serial().or(family.support_serial());
             let variant_net = variant.support_net().or(family.support_net());
-            let config_count = if variant.config_registers.is_empty() {
-                family.config_registers.len()
+            let variant_config_registers = if variant.config_registers.is_empty() {
+                config_registers.clone()
             } else {
-                variant.config_registers.len()
+                variant
+                    .config_registers
+                    .iter()
+                    .map(config_register_info)
+                    .collect()
             };
+            let config_count = variant_config_registers.len();
 
             DeviceVariantInfo {
                 name: variant.name.clone(),
@@ -156,6 +162,7 @@ fn family_info(family: &ChipFamily) -> DeviceFamilyInfo {
                     variant.eeprom_start_addr,
                 ),
                 config_register_count: config_count,
+                config_registers: variant_config_registers,
             }
         })
         .collect();

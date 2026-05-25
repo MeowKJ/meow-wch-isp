@@ -26,8 +26,9 @@ meowisp ai flash --file firmware.bin --verify --reset --json
 meowisp ai verify --file firmware.bin --json
 meowisp ai erase --region code --json
 meowisp ai erase --region data --json
+meowisp ai memory schema --chip CH569 --json
 meowisp ai config read --json
-meowisp ai config schema --json
+meowisp ai config schema --chip CH569 --json
 meowisp ai config write --set CFG_BOOT_EN=1 --set CFG_DEBUG_EN=1 --json
 ```
 

@@ -134,6 +134,14 @@ enum AiCommand {
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
+    Memory {
+        #[command(subcommand)]
+        command: AiMemoryCommand,
+    },
+    Config {
+        #[command(subcommand)]
+        command: AiConfigCommand,
+    },
     Flash {
         #[arg(short = 'f', long = "file", value_name = "FILE")]
         file: String,
@@ -141,6 +149,26 @@ enum AiCommand {
         plan: bool,
         #[arg(long = "probe-device", action = ArgAction::SetTrue)]
         probe_device: bool,
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum AiMemoryCommand {
+    Schema {
+        #[arg(long = "chip", value_name = "CHIP")]
+        chip: Option<String>,
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum AiConfigCommand {
+    Schema {
+        #[arg(long = "chip", value_name = "CHIP")]
+        chip: Option<String>,
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
@@ -221,6 +249,16 @@ fn run_cli(cli: Cli) -> Result<()> {
             AiCommand::Probe { json } => {
                 print_ai_probe(*json)?;
             }
+            AiCommand::Memory { command } => match command {
+                AiMemoryCommand::Schema { chip, json } => {
+                    print_ai_memory_schema(chip.as_deref(), *json)?;
+                }
+            },
+            AiCommand::Config { command } => match command {
+                AiConfigCommand::Schema { chip, json } => {
+                    print_ai_config_schema(chip.as_deref(), *json)?;
+                }
+            },
             AiCommand::Flash {
                 file,
                 plan,
@@ -394,6 +432,12 @@ fn cli_outputs_json(cli: &Cli) -> bool {
             | CliCommand::Ai {
                 command: AiCommand::Catalog { json: true }
                     | AiCommand::Probe { json: true }
+                    | AiCommand::Memory {
+                        command: AiMemoryCommand::Schema { json: true, .. },
+                    }
+                    | AiCommand::Config {
+                        command: AiConfigCommand::Schema { json: true, .. },
+                    }
                     | AiCommand::Flash { json: true, .. }
             }
     )
@@ -457,6 +501,119 @@ fn print_ai_probe(json: bool) -> Result<()> {
     println!("Chip ID: {}", chip.chip_id);
     println!("Flash: {} bytes", chip.flash_size);
     println!("EEPROM: {} bytes", chip.eeprom_size);
+    Ok(())
+}
+
+fn print_ai_memory_schema(chip: Option<&str>, json: bool) -> Result<()> {
+    let catalog = catalog::load_catalog().context("failed to load device catalog")?;
+    let chip_filter = chip.map(|value| value.to_ascii_uppercase());
+    let mut devices = Vec::new();
+
+    for family in catalog.families {
+        for variant in family.variants {
+            if chip_filter
+                .as_ref()
+                .is_some_and(|filter| !variant.name.to_ascii_uppercase().contains(filter))
+            {
+                continue;
+            }
+            devices.push(serde_json::json!({
+                "family": family.name,
+                "device_type": family.device_type_hex,
+                "variant": variant.name,
+                "chip_id": variant.chip_id_hex,
+                "flash_size": variant.flash_size,
+                "eeprom_size": variant.eeprom_size,
+                "regions": variant.memory_regions
+            }));
+        }
+    }
+
+    if json {
+        let payload = serde_json::json!({
+            "ok": true,
+            "operation": "memory.schema",
+            "chip_filter": chip,
+            "device_count": devices.len(),
+            "devices": devices
+        });
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    println!("Memory schema devices: {}", devices.len());
+    for device in devices {
+        println!(
+            "- {} {}",
+            device["variant"].as_str().unwrap_or("unknown"),
+            device["chip_id"].as_str().unwrap_or("")
+        );
+    }
+    Ok(())
+}
+
+fn print_ai_config_schema(chip: Option<&str>, json: bool) -> Result<()> {
+    let catalog = catalog::load_catalog().context("failed to load device catalog")?;
+    let chip_filter = chip.map(|value| value.to_ascii_uppercase());
+    let mut families = Vec::new();
+
+    for family in catalog.families {
+        let variants: Vec<_> = family
+            .variants
+            .iter()
+            .filter(|variant| {
+                chip_filter.as_ref().map_or(true, |filter| {
+                    family.name.to_ascii_uppercase().contains(filter)
+                        || variant.name.to_ascii_uppercase().contains(filter)
+                })
+            })
+            .map(|variant| {
+                serde_json::json!({
+                    "name": variant.name,
+                    "chip_id": variant.chip_id_hex,
+                    "register_count": variant.config_registers.len(),
+                    "registers": variant.config_registers
+                })
+            })
+            .collect();
+        let family_matches = !variants.is_empty();
+        if !family_matches {
+            continue;
+        }
+
+        families.push(serde_json::json!({
+            "family": family.name,
+            "device_type": family.device_type_hex,
+            "variant_count": variants.len(),
+            "register_count": variants
+                .iter()
+                .filter_map(|variant| variant["register_count"].as_u64())
+                .max()
+                .unwrap_or(0),
+            "variants": variants
+        }));
+    }
+
+    if json {
+        let payload = serde_json::json!({
+            "ok": true,
+            "operation": "config.schema",
+            "chip_filter": chip,
+            "family_count": families.len(),
+            "families": families
+        });
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    println!("Config schema families: {}", families.len());
+    for family in families {
+        println!(
+            "- {}: {} register(s)",
+            family["family"].as_str().unwrap_or("unknown"),
+            family["register_count"].as_u64().unwrap_or(0)
+        );
+    }
     Ok(())
 }
 
@@ -813,17 +970,19 @@ fn set_catalog_overview(app: &AppWindow) {
             );
         }
 
-        for register in &family.config_registers {
-            config_rows.push(
-                format!(
-                    "{} · {} · 0x{:02X} · {} fields",
-                    family.name.replace(" Series", ""),
-                    register.name,
-                    register.offset,
-                    register.fields.len()
-                )
-                .into(),
-            );
+        for variant in &family.variants {
+            for register in &variant.config_registers {
+                config_rows.push(
+                    format!(
+                        "{} · {} · 0x{:02X} · {} fields",
+                        variant.name,
+                        register.name,
+                        register.offset,
+                        register.fields.len()
+                    )
+                    .into(),
+                );
+            }
         }
     }
 
