@@ -8,14 +8,16 @@ component PrimaryButton inherits Rectangle {
 
     min-height: 38px;
     border-radius: 6px;
-    background: touch.pressed && root.enabled
-        ? root.accent.darker(0.14)
-        : touch.has-hover && root.enabled
-            ? root.accent.darker(0.06)
-            : root.accent;
-    opacity: root.enabled ? 1.0 : 0.42;
+    background: !root.enabled
+        ? #edf1f5
+        : touch.pressed
+            ? root.accent.darker(0.14)
+            : touch.has-hover
+                ? root.accent.darker(0.06)
+                : root.accent;
+    opacity: 1.0;
     border-width: 1px;
-    border-color: root.accent.darker(0.18);
+    border-color: root.enabled ? root.accent.darker(0.18) : #d9e1ea;
 
     animate background { duration: 120ms; easing: ease; }
     animate opacity { duration: 160ms; easing: ease; }
@@ -28,7 +30,7 @@ component PrimaryButton inherits Rectangle {
 
     Text {
         text: root.label;
-        color: #ffffff;
+        color: root.enabled ? #ffffff : #9aa7b6;
         font-size: 13px;
         font-weight: 700;
         horizontal-alignment: center;
@@ -262,6 +264,10 @@ export component AppWindow inherits Window {
     in-out property <[string]> catalog-family-details: [];
     in-out property <[string]> catalog-variant-rows: [];
     in-out property <[string]> catalog-config-rows: [];
+    in-out property <bool> flash-plan-ready: false;
+    in-out property <string> flash-plan-summary: "No firmware plan";
+    in-out property <[string]> flash-plan-steps: [];
+    in-out property <[string]> flash-plan-risks: [];
 
     callback request-pick-bin();
     callback request-open-online();
@@ -661,7 +667,7 @@ export component AppWindow inherits Window {
                                             padding: 12px;
                                             spacing: 4px;
                                             Text { text: root.firmware-name; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
-                                            Text { text: root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No parsed target metadata"; color: #64748b; font-size: 11px; overflow: elide; }
+                                            Text { text: root.flash-plan-ready ? root.flash-plan-summary : root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No parsed target metadata"; color: #64748b; font-size: 11px; overflow: elide; }
                                         }
                                     }
                                 }
@@ -670,24 +676,32 @@ export component AppWindow inherits Window {
                             Panel {
                                 horizontal-stretch: 1;
                                 title: "Operation Plan";
-                                subtitle: "The preview is UI-ready; execution still uses the existing guarded backend.";
+                                subtitle: root.flash-plan-ready ? root.flash-plan-summary : "Select firmware to build a read-only plan preview.";
 
                                 VerticalLayout {
                                     spacing: 9px;
-                                    for step in ["Connect", "Identify", "Validate chip", "Erase", "Program", "Verify", "Reset"]: Rectangle {
+                                    for step[index] in root.flash-plan-steps: Rectangle {
                                         height: 38px;
                                         border-radius: 6px;
-                                        background: #f8fafc;
+                                        background: root.flash-plan-risks[index] == "destructive" ? #fff7e8 : root.flash-plan-risks[index] == "write" ? #effaf4 : #f8fafc;
                                         border-width: 1px;
-                                        border-color: #e2e8f0;
+                                        border-color: root.flash-plan-risks[index] == "destructive" ? #f0d19d : #e2e8f0;
                                         HorizontalLayout {
                                             padding-left: 12px;
                                             padding-right: 12px;
                                             Text { text: step; color: #1f2937; font-size: 12px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
-                                            Text { text: root.device-connected && root.has-firmware ? "ready" : "blocked"; color: root.device-connected && root.has-firmware ? #16614d : #8b5a16; font-size: 11px; vertical-alignment: center; }
+                                            Text { text: root.flash-plan-risks[index]; color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : root.flash-plan-risks[index] == "write" ? #16614d : #64748b; font-size: 11px; vertical-alignment: center; }
                                         }
                                     }
-                                    PrimaryButton { height: 42px; label: "Apply Flash"; enabled: !root.busy && root.device-connected && root.has-firmware; clicked => { root.request-flash-bin(); } }
+                                    if !root.flash-plan-ready: Rectangle {
+                                        height: 46px;
+                                        border-radius: 6px;
+                                        background: #f8fafc;
+                                        border-width: 1px;
+                                        border-color: #e2e8f0;
+                                        Text { text: "No plan yet. Select a firmware file or online release."; color: #64748b; font-size: 12px; x: 12px; vertical-alignment: center; overflow: elide; }
+                                    }
+                                    PrimaryButton { height: 42px; label: "Apply Flash"; enabled: !root.busy && root.device-connected && root.has-firmware && root.flash-plan-ready; clicked => { root.request-flash-bin(); } }
                                 }
                             }
                         }

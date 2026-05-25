@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::{ArgAction, Parser, Subcommand};
-use meowisp_core::{catalog, isp, online, permission};
+use meowisp_core::{catalog, isp, online, permission, plan};
 use png::{BlendOp, ColorType, DisposeOp, FrameControl, Transformations};
 use rfd::FileDialog;
 use simplelog::{ColorChoice, Config, LevelFilter, TermLogger, TerminalMode};
@@ -130,6 +130,14 @@ enum AiCommand {
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
+    Flash {
+        #[arg(short = 'f', long = "file", value_name = "FILE")]
+        file: String,
+        #[arg(long = "plan", action = ArgAction::SetTrue)]
+        plan: bool,
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -157,8 +165,10 @@ fn cli_uses_serial(cli: &Cli) -> bool {
     cli.serial || cli.port.is_some() || cli.baudrate.is_some()
 }
 
-fn init_cli_logging(verbose: bool) {
-    let level = if verbose {
+fn init_cli_logging(verbose: bool, quiet: bool) {
+    let level = if quiet && !verbose {
+        LevelFilter::Off
+    } else if verbose {
         LevelFilter::Debug
     } else {
         LevelFilter::Info
@@ -188,7 +198,14 @@ fn get_flashing(cli: &Cli) -> Result<Flashing<'_>> {
 }
 
 fn run_cli(cli: Cli) -> Result<()> {
-    init_cli_logging(cli.verbose);
+    let quiet_json = matches!(
+        &cli.command,
+        CliCommand::Catalog { json: true }
+            | CliCommand::Ai {
+                command: AiCommand::Catalog { json: true } | AiCommand::Flash { json: true, .. }
+            }
+    );
+    init_cli_logging(cli.verbose, quiet_json);
 
     match cli.command {
         CliCommand::Doctor => {
@@ -200,6 +217,12 @@ fn run_cli(cli: Cli) -> Result<()> {
         CliCommand::Ai { ref command } => match command {
             AiCommand::Catalog { json } => {
                 print_catalog(*json)?;
+            }
+            AiCommand::Flash { file, plan, json } => {
+                if !*plan {
+                    anyhow::bail!("AI flash currently requires --plan; apply support will be added after guarded UI planning");
+                }
+                print_flash_plan(PathBuf::from(file), *json)?;
             }
         },
         CliCommand::Probe => {
@@ -408,6 +431,34 @@ fn print_catalog(json: bool) -> Result<()> {
     Ok(())
 }
 
+fn print_flash_plan(path: PathBuf, json: bool) -> Result<()> {
+    let plan = plan::plan_flash_from_file(&path).context("failed to build flash plan")?;
+    if json {
+        println!("{}", plan::plan_json_pretty(&plan)?);
+        return Ok(());
+    }
+
+    println!(
+        "Flash plan: {} bytes ({} padded), {} sector(s)",
+        plan.firmware.original_size, plan.firmware.padded_size, plan.firmware.sectors_to_erase
+    );
+    for step in plan.steps {
+        println!(
+            "- {} [{:?}]{}",
+            step.title,
+            step.risk,
+            if step.blocking { " blocking" } else { "" }
+        );
+    }
+    if !plan.blockers.is_empty() {
+        println!("Blockers:");
+        for blocker in plan.blockers {
+            println!("- {blocker}");
+        }
+    }
+    Ok(())
+}
+
 fn ui_font_family() -> &'static str {
     if cfg!(target_os = "macos") {
         "Hiragino Sans GB"
@@ -588,6 +639,47 @@ fn apply_firmware_descriptor(app: &AppWindow, descriptor: &online::FirmwareDescr
 fn update_firmware_panel(app: &AppWindow, name: &str) {
     app.set_firmware_name(name.into());
     app.set_has_firmware(true);
+}
+
+fn set_flash_plan_empty(app: &AppWindow) {
+    app.set_flash_plan_ready(false);
+    app.set_flash_plan_summary("No firmware plan".into());
+    app.set_flash_plan_steps(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
+    app.set_flash_plan_risks(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
+}
+
+fn set_flash_plan_for_path(app: &AppWindow, path: &std::path::Path) {
+    match plan::plan_flash_from_file(path) {
+        Ok(plan) => set_flash_plan(app, &plan),
+        Err(err) => {
+            set_flash_plan_empty(app);
+            set_log(app, "固件计划生成失败", &err.to_string());
+        }
+    }
+}
+
+fn set_flash_plan(app: &AppWindow, plan: &plan::OperationPlan) {
+    let steps: Vec<SharedString> = plan
+        .steps
+        .iter()
+        .map(|step| format!("{} · {}", step.title, step.detail).into())
+        .collect();
+    let risks: Vec<SharedString> = plan
+        .steps
+        .iter()
+        .map(|step| format!("{:?}", step.risk).to_ascii_lowercase().into())
+        .collect();
+
+    app.set_flash_plan_ready(true);
+    app.set_flash_plan_summary(
+        format!(
+            "{} bytes, {} padded, {} sector(s)",
+            plan.firmware.original_size, plan.firmware.padded_size, plan.firmware.sectors_to_erase
+        )
+        .into(),
+    );
+    app.set_flash_plan_steps(Rc::new(VecModel::from(steps)).into());
+    app.set_flash_plan_risks(Rc::new(VecModel::from(risks)).into());
 }
 
 fn set_online_options(app: &AppWindow, assets: &[online::ReleaseAsset]) {
@@ -1229,6 +1321,7 @@ fn main() -> Result<(), slint::PlatformError> {
     app.set_has_firmware(false);
     app.set_online_status("".into());
     set_online_options(&app, &[]);
+    set_flash_plan_empty(&app);
     set_catalog_overview(&app);
     update_permission_state(&app);
     clear_progress(&app);
@@ -1332,6 +1425,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             if let Some(app) = weak.upgrade() {
                 update_firmware_panel(&app, &name);
+                set_flash_plan_for_path(&app, &path);
                 if let Some(descriptor) = online::describe_firmware_name(&name) {
                     apply_firmware_descriptor(&app, &descriptor);
                 } else {
@@ -1385,6 +1479,7 @@ fn main() -> Result<(), slint::PlatformError> {
         if let Some(app) = weak.upgrade() {
             update_firmware_panel(&app, &asset.name);
             apply_firmware_descriptor(&app, &asset.descriptor);
+            set_flash_plan_empty(&app);
             app.set_cat_mood(0);
             app.set_online_sheet_visible(false);
             hide_success(&app);

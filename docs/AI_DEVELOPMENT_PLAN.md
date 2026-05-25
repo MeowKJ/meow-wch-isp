@@ -121,7 +121,7 @@ CLI:
 
 ```bash
 meowisp ai probe --json
-meowisp ai flash --file firmware.bin --plan --json
+meowisp ai flash --file firmware.bin --plan --json  # implemented: read-only plan
 meowisp ai flash --file firmware.bin --apply --json
 meowisp ai verify --file firmware.bin --json
 ```
