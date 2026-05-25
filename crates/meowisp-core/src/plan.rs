@@ -29,6 +29,14 @@ pub struct FirmwarePlanInfo {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct PlanDeviceInfo {
+    pub name: String,
+    pub chip_id: String,
+    pub flash_size: u32,
+    pub eeprom_size: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct OperationPlanStep {
     pub id: String,
     pub title: String,
@@ -43,6 +51,7 @@ pub struct OperationPlan {
     pub operation: OperationKind,
     pub apply_ready: bool,
     pub transport: String,
+    pub device: Option<PlanDeviceInfo>,
     pub firmware: FirmwarePlanInfo,
     pub steps: Vec<OperationPlanStep>,
     pub blockers: Vec<String>,
@@ -50,11 +59,19 @@ pub struct OperationPlan {
 }
 
 pub fn plan_flash_from_file(path: &Path) -> Result<OperationPlan> {
+    plan_flash_from_file_with_device(path, None)
+}
+
+pub fn plan_flash_from_file_with_device(
+    path: &Path,
+    device: Option<PlanDeviceInfo>,
+) -> Result<OperationPlan> {
     let data = wchisp::format::read_firmware_from_file(path)?;
     let original_size = data.len();
     let padded_size = padded_size(original_size);
     let sectors_to_erase = padded_size / SECTOR_SIZE + 1;
     let mut warnings = Vec::new();
+    let mut blockers = Vec::new();
 
     if original_size != padded_size {
         warnings.push(format!(
@@ -62,11 +79,23 @@ pub fn plan_flash_from_file(path: &Path) -> Result<OperationPlan> {
         ));
     }
 
+    match &device {
+        Some(device) if padded_size > device.flash_size as usize => blockers.push(format!(
+            "Firmware padded size {padded_size} exceeds {} flash size {}.",
+            device.name, device.flash_size
+        )),
+        Some(_) => {}
+        None => {
+            blockers.push("No live device validation has been attached to this plan yet.".into())
+        }
+    }
+
     Ok(OperationPlan {
         ok: true,
         operation: OperationKind::Flash,
-        apply_ready: false,
+        apply_ready: blockers.is_empty(),
         transport: "usb:auto".into(),
+        device,
         firmware: FirmwarePlanInfo {
             path: path.display().to_string(),
             original_size,
@@ -125,7 +154,7 @@ pub fn plan_flash_from_file(path: &Path) -> Result<OperationPlan> {
                 false,
             ),
         ],
-        blockers: vec!["No live device validation has been attached to this plan yet.".into()],
+        blockers,
         warnings,
     })
 }
@@ -162,6 +191,40 @@ fn step(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn device_capacity_controls_apply_readiness() {
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!(
+            "meowisp-plan-test-{}-{}.bin",
+            std::process::id(),
+            "capacity"
+        ));
+        std::fs::write(&path, [0u8; 1500]).expect("write firmware fixture");
+
+        let small = PlanDeviceInfo {
+            name: "TinyCH".into(),
+            chip_id: "0x01".into(),
+            flash_size: 1024,
+            eeprom_size: 0,
+        };
+        let plan = plan_flash_from_file_with_device(&path, Some(small)).expect("plan");
+        assert!(!plan.apply_ready);
+        assert_eq!(plan.firmware.padded_size, 2048);
+        assert_eq!(plan.blockers.len(), 1);
+
+        let large = PlanDeviceInfo {
+            name: "RoomyCH".into(),
+            chip_id: "0x02".into(),
+            flash_size: 4096,
+            eeprom_size: 0,
+        };
+        let plan = plan_flash_from_file_with_device(&path, Some(large)).expect("plan");
+        assert!(plan.apply_ready);
+        assert!(plan.blockers.is_empty());
+
+        let _ = std::fs::remove_file(path);
+    }
 
     #[test]
     fn padded_size_uses_sector_boundary() {

@@ -130,11 +130,17 @@ enum AiCommand {
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
+    Probe {
+        #[arg(long = "json", action = ArgAction::SetTrue)]
+        json: bool,
+    },
     Flash {
         #[arg(short = 'f', long = "file", value_name = "FILE")]
         file: String,
         #[arg(long = "plan", action = ArgAction::SetTrue)]
         plan: bool,
+        #[arg(long = "probe-device", action = ArgAction::SetTrue)]
+        probe_device: bool,
         #[arg(long = "json", action = ArgAction::SetTrue)]
         json: bool,
     },
@@ -198,13 +204,7 @@ fn get_flashing(cli: &Cli) -> Result<Flashing<'_>> {
 }
 
 fn run_cli(cli: Cli) -> Result<()> {
-    let quiet_json = matches!(
-        &cli.command,
-        CliCommand::Catalog { json: true }
-            | CliCommand::Ai {
-                command: AiCommand::Catalog { json: true } | AiCommand::Flash { json: true, .. }
-            }
-    );
+    let quiet_json = cli_outputs_json(&cli);
     init_cli_logging(cli.verbose, quiet_json);
 
     match cli.command {
@@ -218,11 +218,19 @@ fn run_cli(cli: Cli) -> Result<()> {
             AiCommand::Catalog { json } => {
                 print_catalog(*json)?;
             }
-            AiCommand::Flash { file, plan, json } => {
+            AiCommand::Probe { json } => {
+                print_ai_probe(*json)?;
+            }
+            AiCommand::Flash {
+                file,
+                plan,
+                probe_device,
+                json,
+            } => {
                 if !*plan {
                     anyhow::bail!("AI flash currently requires --plan; apply support will be added after guarded UI planning");
                 }
-                print_flash_plan(PathBuf::from(file), *json)?;
+                print_flash_plan(PathBuf::from(file), *probe_device, *json)?;
             }
         },
         CliCommand::Probe => {
@@ -244,18 +252,13 @@ fn run_cli(cli: Cli) -> Result<()> {
                     ndevices,
                     if ndevices == 1 { "" } else { "s" }
                 );
-                for index in 0..ndevices {
-                    let mut transport = UsbTransport::open_nth(index)
-                        .with_context(|| format!("failed to open USB device #{index}"))?;
-                    let chip = Flashing::get_chip(&mut transport)
-                        .with_context(|| format!("failed to identify USB device #{index}"))?;
-                    log::info!("\tDevice #{index}: {chip}");
-                }
             }
         }
         CliCommand::Info => {
             let mut flashing = get_flashing(&cli)?;
-            flashing.dump_info().context("failed to read chip info")?;
+            flashing
+                .dump_info()
+                .context("failed to print device info")?;
         }
         CliCommand::Flash {
             ref file,
@@ -263,54 +266,43 @@ fn run_cli(cli: Cli) -> Result<()> {
             skip_verify,
             skip_reset,
         } => {
+            let mut firmware =
+                read_firmware_from_file(file).with_context(|| format!("failed to read {file}"))?;
+            extend_firmware_to_sector_boundary(&mut firmware);
             let mut flashing = get_flashing(&cli)?;
-            flashing.dump_info().context("failed to read chip info")?;
-
-            let mut binary = read_firmware_from_file(&file)
-                .with_context(|| format!("failed to read firmware file: {file}"))?;
-            extend_firmware_to_sector_boundary(&mut binary);
-            log::info!("Firmware size: {}", binary.len());
+            let sectors = (firmware.len() / SECTOR_SIZE + 1) as u32;
 
             if skip_erase {
                 log::warn!("Skipping erase");
             } else {
-                log::info!("Erasing...");
-                let sectors = binary.len() / SECTOR_SIZE + 1;
+                log::info!("Erasing {sectors} sectors...");
                 flashing
                     .erase_code(sectors as u32)
                     .context("erase failed")?;
-                thread::sleep(Duration::from_secs(1));
-                log::info!("Erase done");
             }
 
-            log::info!("Writing to code flash...");
-            flashing.flash(&binary).context("flash failed")?;
-            thread::sleep(Duration::from_millis(500));
+            log::info!("Flashing {file}...");
+            flashing.flash(&firmware).context("flash failed")?;
 
             if skip_verify {
                 log::warn!("Skipping verify");
             } else {
                 log::info!("Verifying...");
-                flashing.verify(&binary).context("verify failed")?;
-                log::info!("Verify OK");
+                flashing.verify(&firmware).context("verify failed")?;
             }
 
             if skip_reset {
                 log::warn!("Skipping reset");
             } else {
-                log::info!("Resetting target...");
                 let _ = flashing.reset();
             }
         }
         CliCommand::Verify { ref file } => {
+            let mut firmware =
+                read_firmware_from_file(file).with_context(|| format!("failed to read {file}"))?;
+            extend_firmware_to_sector_boundary(&mut firmware);
             let mut flashing = get_flashing(&cli)?;
-            let mut binary = read_firmware_from_file(&file)
-                .with_context(|| format!("failed to read firmware file: {file}"))?;
-            extend_firmware_to_sector_boundary(&mut binary);
-            log::info!("Firmware size: {}", binary.len());
-            log::info!("Verifying...");
-            flashing.verify(&binary).context("verify failed")?;
-            log::info!("Verify OK");
+            flashing.verify(&firmware).context("verify failed")?;
         }
         CliCommand::Erase => {
             let mut flashing = get_flashing(&cli)?;
@@ -320,25 +312,20 @@ fn run_cli(cli: Cli) -> Result<()> {
         }
         CliCommand::Reset => {
             let mut flashing = get_flashing(&cli)?;
-            let _ = flashing.reset();
-            log::info!("Reset sent");
+            flashing.reset().context("reset failed")?;
         }
         CliCommand::Eeprom { ref command } => {
             let mut flashing = get_flashing(&cli)?;
-            flashing.reidenfity().context("failed to identify chip")?;
-
             match command {
                 EepromCommand::Dump { out } => {
                     log::info!("Reading EEPROM(Data Flash)...");
-                    let eeprom = flashing.dump_eeprom().context("EEPROM dump failed")?;
-                    log::info!("EEPROM data size: {}", eeprom.len());
-                    if let Some(path) = out {
-                        fs::write(&path, &eeprom)
-                            .with_context(|| format!("failed to write EEPROM dump: {path}"))?;
-                        log::info!("EEPROM data saved to {}", path);
+                    let data = flashing.dump_eeprom().context("EEPROM read failed")?;
+                    if let Some(out) = out {
+                        fs::write(out, &data).with_context(|| format!("failed to write {out}"))?;
+                        log::info!("Wrote {out}");
                     } else {
                         let mut buf = vec![];
-                        hxdmp::hexdump(&eeprom, &mut buf).context("failed to format hexdump")?;
+                        hxdmp::hexdump(&data, &mut buf).context("failed to format hexdump")?;
                         println!("{}", String::from_utf8_lossy(&buf));
                     }
                 }
@@ -349,27 +336,25 @@ fn run_cli(cli: Cli) -> Result<()> {
                 }
                 EepromCommand::Write { file, skip_erase } => {
                     if *skip_erase {
-                        log::warn!("Skipping erase");
+                        log::warn!("Skipping EEPROM erase");
                     } else {
                         log::info!("Erasing EEPROM(Data Flash)...");
                         flashing.erase_data().context("EEPROM erase failed")?;
                         log::info!("EEPROM erased");
                     }
 
-                    let eeprom = fs::read(&file)
-                        .with_context(|| format!("failed to read EEPROM file: {file}"))?;
-                    log::info!("Read {} bytes from bin file", eeprom.len());
-                    if eeprom.len() as u32 != flashing.chip.eeprom_size {
+                    let data = fs::read(file).with_context(|| format!("failed to read {file}"))?;
+                    if data.len() > flashing.chip.eeprom_size as usize {
                         anyhow::bail!(
-                            "EEPROM size mismatch: expected {}, got {}",
-                            flashing.chip.eeprom_size,
-                            eeprom.len()
+                            "EEPROM file too large: {} > {}",
+                            data.len(),
+                            flashing.chip.eeprom_size
                         );
                     }
 
                     log::info!("Writing EEPROM(Data Flash)...");
                     flashing
-                        .write_eeprom(&eeprom)
+                        .write_eeprom(&data)
                         .context("EEPROM write failed")?;
                     log::info!("EEPROM written");
                 }
@@ -379,7 +364,7 @@ fn run_cli(cli: Cli) -> Result<()> {
             let mut flashing = get_flashing(&cli)?;
             match command {
                 ConfigCommand::Info => {
-                    flashing.dump_config().context("config dump failed")?;
+                    flashing.dump_config().context("config read failed")?;
                 }
                 ConfigCommand::Reset => {
                     flashing.reset_config().context("config reset failed")?;
@@ -389,21 +374,44 @@ fn run_cli(cli: Cli) -> Result<()> {
                 }
             }
         }
-        CliCommand::InstallUdev => {
-            println!(
-                "{}",
-                permission::install_udev_rules().map_err(anyhow::Error::msg)?
-            );
-        }
-        CliCommand::RemoveUdev => {
-            println!(
-                "{}",
-                permission::remove_udev_rules().map_err(anyhow::Error::msg)?
-            );
-        }
+        CliCommand::InstallUdev => match permission::install_udev_rules() {
+            Ok(msg) => println!("{msg}"),
+            Err(err) => anyhow::bail!("{err}"),
+        },
+        CliCommand::RemoveUdev => match permission::remove_udev_rules() {
+            Ok(msg) => println!("{msg}"),
+            Err(err) => anyhow::bail!("{err}"),
+        },
     }
 
     Ok(())
+}
+
+fn cli_outputs_json(cli: &Cli) -> bool {
+    matches!(
+        &cli.command,
+        CliCommand::Catalog { json: true }
+            | CliCommand::Ai {
+                command: AiCommand::Catalog { json: true }
+                    | AiCommand::Probe { json: true }
+                    | AiCommand::Flash { json: true, .. }
+            }
+    )
+}
+
+fn print_json_error(err: &anyhow::Error) {
+    let payload = serde_json::json!({
+        "ok": false,
+        "error": {
+            "code": "operation_failed",
+            "message": err.to_string(),
+            "recoverable": true
+        }
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&payload).expect("json error should serialize")
+    );
 }
 
 fn print_catalog(json: bool) -> Result<()> {
@@ -431,8 +439,41 @@ fn print_catalog(json: bool) -> Result<()> {
     Ok(())
 }
 
-fn print_flash_plan(path: PathBuf, json: bool) -> Result<()> {
-    let plan = plan::plan_flash_from_file(&path).context("failed to build flash plan")?;
+fn print_ai_probe(json: bool) -> Result<()> {
+    let chip = isp::probe().map_err(anyhow::Error::msg)?;
+    if json {
+        let payload = serde_json::json!({
+            "ok": true,
+            "operation": "probe",
+            "transport": "usb:auto",
+            "device": chip,
+            "messages": []
+        });
+        println!("{}", serde_json::to_string_pretty(&payload)?);
+        return Ok(());
+    }
+
+    println!("Chip: {}", chip.name);
+    println!("Chip ID: {}", chip.chip_id);
+    println!("Flash: {} bytes", chip.flash_size);
+    println!("EEPROM: {} bytes", chip.eeprom_size);
+    Ok(())
+}
+
+fn print_flash_plan(path: PathBuf, probe_device: bool, json: bool) -> Result<()> {
+    let device = if probe_device {
+        let chip = isp::probe().map_err(anyhow::Error::msg)?;
+        Some(plan::PlanDeviceInfo {
+            name: chip.name,
+            chip_id: chip.chip_id,
+            flash_size: chip.flash_size,
+            eeprom_size: chip.eeprom_size,
+        })
+    } else {
+        None
+    };
+    let plan = plan::plan_flash_from_file_with_device(&path, device)
+        .context("failed to build flash plan")?;
     if json {
         println!("{}", plan::plan_json_pretty(&plan)?);
         return Ok(());
@@ -593,6 +634,9 @@ fn set_chip(app: &AppWindow, info: &isp::ChipInfo) {
     app.set_device_connected(true);
     app.set_device_name(info.name.clone().into());
     app.set_device_category(info.category.clone().into());
+    app.set_device_chip_id(info.chip_id.clone().into());
+    app.set_device_flash_size(info.flash_size as i32);
+    app.set_device_eeprom_size(info.eeprom_size as i32);
     app.set_device_family(
         format!(
             "{} · Flash {} KB · EEPROM {} KB",
@@ -609,6 +653,9 @@ fn set_idle_chip(app: &AppWindow) {
     app.set_device_name("待连接设备".into());
     app.set_device_category("待连接".into());
     app.set_device_family("".into());
+    app.set_device_chip_id("".into());
+    app.set_device_flash_size(0);
+    app.set_device_eeprom_size(0);
 }
 
 fn set_pending_chip(app: &AppWindow) {
@@ -616,6 +663,9 @@ fn set_pending_chip(app: &AppWindow) {
     app.set_device_name("识别设备中...".into());
     app.set_device_category("待识别".into());
     app.set_device_family("正在自动读取芯片信息".into());
+    app.set_device_chip_id("".into());
+    app.set_device_flash_size(0);
+    app.set_device_eeprom_size(0);
 }
 
 fn apply_firmware_descriptor(app: &AppWindow, descriptor: &online::FirmwareDescriptor) {
@@ -644,12 +694,24 @@ fn update_firmware_panel(app: &AppWindow, name: &str) {
 fn set_flash_plan_empty(app: &AppWindow) {
     app.set_flash_plan_ready(false);
     app.set_flash_plan_summary("No firmware plan".into());
+    app.set_flash_plan_status("blocked".into());
     app.set_flash_plan_steps(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
     app.set_flash_plan_risks(Rc::new(VecModel::from(Vec::<SharedString>::new())).into());
 }
 
 fn set_flash_plan_for_path(app: &AppWindow, path: &std::path::Path) {
-    match plan::plan_flash_from_file(path) {
+    let device = if app.get_device_connected() && app.get_device_flash_size() > 0 {
+        Some(plan::PlanDeviceInfo {
+            name: app.get_device_name().to_string(),
+            chip_id: app.get_device_chip_id().to_string(),
+            flash_size: app.get_device_flash_size() as u32,
+            eeprom_size: app.get_device_eeprom_size() as u32,
+        })
+    } else {
+        None
+    };
+
+    match plan::plan_flash_from_file_with_device(path, device) {
         Ok(plan) => set_flash_plan(app, &plan),
         Err(err) => {
             set_flash_plan_empty(app);
@@ -670,14 +732,35 @@ fn set_flash_plan(app: &AppWindow, plan: &plan::OperationPlan) {
         .map(|step| format!("{:?}", step.risk).to_ascii_lowercase().into())
         .collect();
 
-    app.set_flash_plan_ready(true);
+    app.set_flash_plan_ready(plan.apply_ready);
     app.set_flash_plan_summary(
-        format!(
-            "{} bytes, {} padded, {} sector(s)",
-            plan.firmware.original_size, plan.firmware.padded_size, plan.firmware.sectors_to_erase
-        )
+        if plan.apply_ready {
+            format!(
+                "{} bytes, {} padded, {} sector(s), device validated",
+                plan.firmware.original_size,
+                plan.firmware.padded_size,
+                plan.firmware.sectors_to_erase
+            )
+        } else if let Some(blocker) = plan.blockers.first() {
+            format!(
+                "{} bytes, {} padded · blocked: {}",
+                plan.firmware.original_size, plan.firmware.padded_size, blocker
+            )
+        } else {
+            format!(
+                "{} bytes, {} padded, {} sector(s)",
+                plan.firmware.original_size,
+                plan.firmware.padded_size,
+                plan.firmware.sectors_to_erase
+            )
+        }
         .into(),
     );
+    app.set_flash_plan_status(if plan.apply_ready {
+        "ready".into()
+    } else {
+        "blocked".into()
+    });
     app.set_flash_plan_steps(Rc::new(VecModel::from(steps)).into());
     app.set_flash_plan_risks(Rc::new(VecModel::from(risks)).into());
 }
@@ -1302,8 +1385,13 @@ fn main() -> Result<(), slint::PlatformError> {
         }
 
         let cli = Cli::try_parse_from(cli_args).unwrap_or_else(|err| err.exit());
+        let outputs_json = cli_outputs_json(&cli);
         if let Err(err) = run_cli(cli) {
-            eprintln!("{err:?}");
+            if outputs_json {
+                print_json_error(&err);
+            } else {
+                eprintln!("{err:?}");
+            }
             std::process::exit(1);
         }
         std::process::exit(0);

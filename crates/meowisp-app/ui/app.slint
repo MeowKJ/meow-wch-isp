@@ -231,6 +231,9 @@ export component AppWindow inherits Window {
     in-out property <string> device-name: "待连接设备";
     in-out property <string> device-category: "待连接";
     in-out property <string> device-family: "";
+    in-out property <string> device-chip-id: "";
+    in-out property <int> device-flash-size: 0;
+    in-out property <int> device-eeprom-size: 0;
     in-out property <string> firmware-name: "未选择固件";
     in-out property <string> firmware-badge: "";
     in-out property <string> firmware-summary: "";
@@ -266,6 +269,7 @@ export component AppWindow inherits Window {
     in-out property <[string]> catalog-config-rows: [];
     in-out property <bool> flash-plan-ready: false;
     in-out property <string> flash-plan-summary: "No firmware plan";
+    in-out property <string> flash-plan-status: "blocked";
     in-out property <[string]> flash-plan-steps: [];
     in-out property <[string]> flash-plan-risks: [];
 
@@ -644,12 +648,11 @@ export component AppWindow inherits Window {
                         width: parent.width;
                         height: parent.height;
 
-                        HorizontalLayout {
-                            padding: 20px;
-                            spacing: 16px;
-
                             Panel {
+                                x: 20px;
+                                y: 20px;
                                 width: 360px;
+                                height: parent.height - 40px;
                                 title: "Firmware Source";
                                 subtitle: "Local BIN and release assets.";
 
@@ -674,9 +677,12 @@ export component AppWindow inherits Window {
                             }
 
                             Panel {
-                                horizontal-stretch: 1;
+                                x: 396px;
+                                y: 20px;
+                                width: parent.width - 416px;
+                                height: parent.height - 40px;
                                 title: "Operation Plan";
-                                subtitle: root.flash-plan-ready ? root.flash-plan-summary : "Select firmware to build a read-only plan preview.";
+                                subtitle: root.flash-plan-summary;
 
                                 VerticalLayout {
                                     spacing: 9px;
@@ -693,7 +699,7 @@ export component AppWindow inherits Window {
                                             Text { text: root.flash-plan-risks[index]; color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : root.flash-plan-risks[index] == "write" ? #16614d : #64748b; font-size: 11px; vertical-alignment: center; }
                                         }
                                     }
-                                    if !root.flash-plan-ready: Rectangle {
+                                    if root.flash-plan-steps.length == 0: Rectangle {
                                         height: 46px;
                                         border-radius: 6px;
                                         background: #f8fafc;
@@ -701,10 +707,15 @@ export component AppWindow inherits Window {
                                         border-color: #e2e8f0;
                                         Text { text: "No plan yet. Select a firmware file or online release."; color: #64748b; font-size: 12px; x: 12px; vertical-alignment: center; overflow: elide; }
                                     }
+                                    StatusPill {
+                                        width: 112px;
+                                        label: root.flash-plan-status == "ready" ? "PLAN READY" : "PLAN BLOCKED";
+                                        fill: root.flash-plan-status == "ready" ? #e6f5ed : #fff2d9;
+                                        text-color: root.flash-plan-status == "ready" ? #16614d : #805200;
+                                    }
                                     PrimaryButton { height: 42px; label: "Apply Flash"; enabled: !root.busy && root.device-connected && root.has-firmware && root.flash-plan-ready; clicked => { root.request-flash-bin(); } }
                                 }
                             }
-                        }
                     }
 
                     if root.active-page == 2: ScrollView {

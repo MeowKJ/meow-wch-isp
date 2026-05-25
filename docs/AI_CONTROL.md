@@ -21,6 +21,7 @@ meowisp ai catalog --json
 meowisp ai probe --json
 meowisp ai info --json
 meowisp ai flash --file firmware.bin --plan --json
+meowisp ai flash --file firmware.bin --plan --probe-device --json
 meowisp ai flash --file firmware.bin --verify --reset --json
 meowisp ai verify --file firmware.bin --json
 meowisp ai erase --region code --json
@@ -112,8 +113,9 @@ Config schema response:
 Flash response:
 
 Implemented now: `meowisp ai flash --file firmware.bin --plan --json` returns a
-read-only plan. Apply mode remains intentionally blocked until guarded UI
-planning and device validation are wired through the same `OperationPlan`.
+read-only plan, and `--probe-device` attaches a live device capacity check.
+Apply mode remains intentionally blocked until guarded apply execution is wired
+through the same `OperationPlan`.
 
 ```json
 {

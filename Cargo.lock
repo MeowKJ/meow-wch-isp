@@ -3028,6 +3028,7 @@ dependencies = [
  "meowisp-core",
  "png 0.18.1",
  "rfd",
+ "serde_json",
  "simplelog",
  "slint",
  "slint-build",

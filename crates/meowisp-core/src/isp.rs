@@ -1,4 +1,5 @@
 use anyhow::Error;
+use serde::Serialize;
 use std::fmt::Write as _;
 use std::path::Path;
 use std::thread::sleep;
@@ -7,7 +8,7 @@ use wchisp::transport::UsbTransport;
 
 const SECTOR_SIZE: usize = 1024;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ChipInfo {
     pub name: String,
     pub chip_id: String,
