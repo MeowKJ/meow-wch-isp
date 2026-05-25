@@ -1160,6 +1160,24 @@ fn set_online_options(app: &AppWindow, assets: &[online::ReleaseAsset]) {
     app.set_online_subtitles(Rc::new(VecModel::from(subtitles)).into());
 }
 
+fn ai_command_rows() -> Vec<SharedString> {
+    [
+        "meowisp ai catalog --json",
+        "meowisp ai probe --json",
+        "meowisp ai flash --file fw.bin --plan --json",
+        "meowisp ai memory schema --chip CH569 --json",
+        "meowisp ai config schema --chip CH569 --json",
+        "meowisp ai project plan --file meowisp.project.toml --json",
+    ]
+    .into_iter()
+    .map(SharedString::from)
+    .collect()
+}
+
+fn set_ai_command_rows(app: &AppWindow) {
+    app.set_ai_command_rows(Rc::new(VecModel::from(ai_command_rows())).into());
+}
+
 fn set_catalog_overview(app: &AppWindow) {
     let Ok(catalog) = catalog::load_catalog() else {
         set_log(
@@ -1174,6 +1192,9 @@ fn set_catalog_overview(app: &AppWindow) {
     let mut family_details = Vec::new();
     let mut variant_rows = Vec::new();
     let mut config_rows = Vec::new();
+    let mut selected_config_title = "Select a register".to_string();
+    let mut selected_config_subtitle = "Field details".to_string();
+    let mut selected_field_rows: Vec<SharedString> = Vec::new();
 
     for family in &catalog.families {
         family_names.push(family.name.clone().into());
@@ -1203,6 +1224,32 @@ fn set_catalog_overview(app: &AppWindow) {
 
         for variant in &family.variants {
             for register in &variant.config_registers {
+                if selected_field_rows.is_empty() && !register.fields.is_empty() {
+                    selected_config_title = format!("{} · {}", variant.name, register.name);
+                    selected_config_subtitle = format!(
+                        "Offset 0x{:02X} · reset {}",
+                        register.offset,
+                        register
+                            .reset
+                            .map(|value| format!("0x{value:08X}"))
+                            .unwrap_or_else(|| "unknown".into())
+                    );
+                    selected_field_rows = register
+                        .fields
+                        .iter()
+                        .take(8)
+                        .map(|field| {
+                            format!(
+                                "{} · bits {}..{} · {} values",
+                                field.name,
+                                field.bit_range.first().copied().unwrap_or(0),
+                                field.bit_range.get(1).copied().unwrap_or(0),
+                                field.values.len()
+                            )
+                            .into()
+                        })
+                        .collect();
+                }
                 config_rows.push(
                     format!(
                         "{} · {} · 0x{:02X} · {} fields",
@@ -1220,6 +1267,15 @@ fn set_catalog_overview(app: &AppWindow) {
     if config_rows.is_empty() {
         config_rows.push("No config register schema in catalog".into());
     }
+    if selected_field_rows.is_empty() {
+        selected_field_rows = vec![
+            "Current value · read device first".into(),
+            "Target value · project/config plan".into(),
+            "Reset value · catalog default".into(),
+            "Risk · guarded before write".into(),
+            "Diff preview · pending live read".into(),
+        ];
+    }
 
     app.set_catalog_family_count(catalog.family_count as i32);
     app.set_catalog_variant_count(catalog.variant_count as i32);
@@ -1227,6 +1283,9 @@ fn set_catalog_overview(app: &AppWindow) {
     app.set_catalog_family_details(Rc::new(VecModel::from(family_details)).into());
     app.set_catalog_variant_rows(Rc::new(VecModel::from(variant_rows)).into());
     app.set_catalog_config_rows(Rc::new(VecModel::from(config_rows)).into());
+    app.set_config_selected_title(selected_config_title.into());
+    app.set_config_selected_subtitle(selected_config_subtitle.into());
+    app.set_config_field_rows(Rc::new(VecModel::from(selected_field_rows)).into());
 }
 
 fn update_permission_state(app: &AppWindow) {
@@ -1599,9 +1658,13 @@ fn run_progress_op<F>(
 
 fn copy_log_output(app: &AppWindow) -> Result<(), String> {
     let payload = format!("{}\n\n{}", app.get_log_title(), app.get_log_text());
+    copy_text(&payload)
+}
+
+fn copy_text(payload: &str) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| format!("无法访问剪贴板: {e}"))?;
     clipboard
-        .set_text(payload)
+        .set_text(payload.to_string())
         .map_err(|e| format!("复制失败: {e}"))?;
     Ok(())
 }
@@ -1805,6 +1868,7 @@ fn main() -> Result<(), slint::PlatformError> {
     set_flash_plan_empty(&app);
     set_project_empty(&app);
     set_catalog_overview(&app);
+    set_ai_command_rows(&app);
     if let Some(path) = initial_project_from_env() {
         app.set_active_page(4);
         match project::plan_project_from_file(&path) {
@@ -2023,6 +2087,64 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     let weak = app.as_weak();
+    let op_busy_probe = op_busy.clone();
+    app.on_request_probe_device(move || {
+        if op_busy_probe.swap(true, Ordering::Relaxed) {
+            return;
+        }
+        let weak2 = weak.clone();
+        if let Some(app) = weak.upgrade() {
+            app.set_busy(true);
+            app.set_cat_mood(1);
+            app.set_status_text("识别设备".into());
+            set_pending_chip(&app);
+            set_progress(&app, "识别 WCH ISP 设备", 35);
+            set_log(
+                &app,
+                "正在识别设备",
+                "正在读取芯片 ID、Flash 和 Data Flash 容量。",
+            );
+        }
+        let op_busy_finish = op_busy_probe.clone();
+        thread::spawn(move || {
+            let result = isp::probe();
+            let _ = slint::invoke_from_event_loop(move || {
+                op_busy_finish.store(false, Ordering::Relaxed);
+                if let Some(app) = weak2.upgrade() {
+                    app.set_busy(false);
+                    match result {
+                        Ok(info) => {
+                            set_chip(&app, &info);
+                            app.set_cat_mood(2);
+                            app.set_status_text("设备已识别".into());
+                            set_progress(&app, "设备已识别", 100);
+                            set_log(
+                                &app,
+                                "设备已识别",
+                                &format!(
+                                    "{} · Flash {} KB · Data Flash {} KB",
+                                    info.name,
+                                    info.flash_size / 1024,
+                                    info.eeprom_size / 1024
+                                ),
+                            );
+                        }
+                        Err(err) => {
+                            set_idle_chip(&app);
+                            app.set_cat_mood(3);
+                            app.set_status_text("识别失败".into());
+                            set_progress(&app, "识别失败", 0);
+                            let message = err.to_string();
+                            set_log(&app, "识别失败", &message);
+                            show_error(&app, "识别失败", &message);
+                        }
+                    }
+                }
+            });
+        });
+    });
+
+    let weak = app.as_weak();
     let state_open_online = state.clone();
     app.on_request_open_online(move || {
         refresh_online_assets(weak.clone(), state_open_online.clone());
@@ -2087,6 +2209,26 @@ fn main() -> Result<(), slint::PlatformError> {
                     if showing_error {
                         show_error(&app, "复制失败", &err);
                     }
+                    set_log(&app, "复制失败", &err);
+                }
+            }
+        }
+    });
+
+    let weak = app.as_weak();
+    app.on_request_copy_ai_command(move |index| {
+        let commands = ai_command_rows();
+        let Some(command) = commands.get(index as usize) else {
+            return;
+        };
+        if let Some(app) = weak.upgrade() {
+            match copy_text(command.as_str()) {
+                Ok(()) => {
+                    app.set_cat_mood(2);
+                    set_log(&app, "AI 命令已复制", command.as_str());
+                }
+                Err(err) => {
+                    app.set_cat_mood(3);
                     set_log(&app, "复制失败", &err);
                 }
             }

@@ -281,9 +281,14 @@ export component AppWindow inherits Window {
     in-out property <[string]> project-plan-kinds: [];
     in-out property <[string]> project-issue-rows: [];
     in-out property <string> project-ai-command: "meowisp ai project plan --file meowisp.project.toml --json";
+    in-out property <string> config-selected-title: "Select a register";
+    in-out property <string> config-selected-subtitle: "Field details";
+    in-out property <[string]> config-field-rows: [];
+    in-out property <[string]> ai-command-rows: [];
 
     callback request-pick-bin();
     callback request-open-project();
+    callback request-probe-device();
     callback request-open-online();
     callback request-refresh-online();
     callback request-close-online();
@@ -295,6 +300,7 @@ export component AppWindow inherits Window {
     callback request-fix-permission();
     callback request-remove-permission();
     callback request-copy-log();
+    callback request-copy-ai-command(int);
     callback request-dismiss-success();
     callback request-dismiss-error();
 
@@ -664,14 +670,19 @@ export component AppWindow inherits Window {
                                 width: 360px;
                                 height: parent.height - 40px;
                                 title: "Firmware Source";
-                                subtitle: "Local BIN and release assets.";
+                                subtitle: root.device-connected ? root.device-name : "Probe, project, or firmware.";
 
                                 VerticalLayout {
                                     spacing: 10px;
-                                    GhostButton { height: 38px; label: "Select Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
+                                    PrimaryButton { height: 40px; label: "Probe Device"; enabled: !root.busy; clicked => { root.request-probe-device(); } }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        GhostButton { horizontal-stretch: 1; height: 38px; label: "Open Project"; enabled: !root.busy; clicked => { root.request-open-project(); } }
+                                        GhostButton { horizontal-stretch: 1; height: 38px; label: "Local BIN"; enabled: !root.busy; clicked => { root.request-pick-bin(); } }
+                                    }
                                     GhostButton { height: 38px; label: "Select Online Firmware"; enabled: !root.busy; clicked => { root.request-open-online(); } }
                                     Rectangle {
-                                        height: 84px;
+                                        height: 108px;
                                         border-radius: 6px;
                                         background: #f8fafc;
                                         border-width: 1px;
@@ -681,6 +692,7 @@ export component AppWindow inherits Window {
                                             spacing: 4px;
                                             Text { text: root.firmware-name; color: #152033; font-size: 13px; font-weight: 760; overflow: elide; }
                                             Text { text: root.flash-plan-ready ? root.flash-plan-summary : root.chip-name != "" ? root.chip-name + " · " + root.chip-family : "No parsed target metadata"; color: #64748b; font-size: 11px; overflow: elide; }
+                                            Text { text: root.device-connected ? "Device: " + root.device-name : "Device: not detected"; color: root.device-connected ? #16614d : #8b5a16; font-size: 11px; font-weight: 650; overflow: elide; }
                                         }
                                     }
                                 }
@@ -776,26 +788,26 @@ export component AppWindow inherits Window {
                             Panel {
                                 width: 280px;
                                 title: "Registers";
-                                subtitle: "Read-only schema view.";
+                                subtitle: root.catalog-config-rows.length + " schema rows";
                                 ListView {
                                     vertical-stretch: 1;
-                                    for row in root.catalog-config-rows: Rectangle {
+                                    for row[index] in root.catalog-config-rows: Rectangle {
                                         height: 38px;
                                         border-radius: 6px;
-                                        background: #f8fafc;
+                                        background: index == 0 ? #e9f4f0 : #f8fafc;
                                         border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                        border-color: index == 0 ? #c8ded6 : #e2e8f0;
+                                        Text { text: row; color: index == 0 ? #123f35 : #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
                                     }
                                 }
                             }
                             Panel {
                                 horizontal-stretch: 1;
-                                title: "Fields";
-                                subtitle: "Reserved bits remain non-editable by default.";
+                                title: root.config-selected-title;
+                                subtitle: root.config-selected-subtitle;
                                 VerticalLayout {
                                     spacing: 8px;
-                                    for row in ["Current value", "Target value", "Reset value", "Risk", "Diff preview"]: Rectangle {
+                                    for row in root.config-field-rows: Rectangle {
                                         height: 42px;
                                         border-radius: 6px;
                                         background: #f8fafc;
@@ -809,7 +821,13 @@ export component AppWindow inherits Window {
                                 width: 300px;
                                 title: "Inspector";
                                 subtitle: "Enum meanings, raw bits and constraints.";
-                                Text { text: "Select a register field after read support lands. This surface is intentionally present now so all config options have a home."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                                VerticalLayout {
+                                    spacing: 10px;
+                                    Text { text: "Config editing will stay guarded: read current value, preview target diff, then apply only after an explicit plan."; color: #64748b; font-size: 12px; wrap: word-wrap; }
+                                    GhostButton { height: 38px; label: "Read Config"; enabled: root.device-connected && !root.busy; }
+                                    GhostButton { height: 38px; label: "Plan Config Diff"; enabled: false; }
+                                    GhostButton { height: 38px; label: "Apply Config"; enabled: false; accent: #fff4e7; text-color: #8b4f16; }
+                                }
                             }
                         }
                     }
@@ -993,13 +1011,19 @@ export component AppWindow inherits Window {
                                 subtitle: "Available now";
                                 VerticalLayout {
                                     spacing: 8px;
-                                    for row in ["meowisp ai catalog --json", "meowisp ai probe --json", "meowisp ai flash --file fw.bin --plan --json", "meowisp ai memory schema --chip CH569 --json", "meowisp ai config schema --chip CH569 --json", "meowisp ai project plan --file meowisp.project.toml --json"]: Rectangle {
-                                        height: 38px;
+                                    for row[index] in root.ai-command-rows: Rectangle {
+                                        height: 42px;
                                         border-radius: 6px;
                                         background: #f7f4ff;
                                         border-width: 1px;
                                         border-color: #ded6f5;
-                                        Text { text: row; color: #4d3a8a; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                        HorizontalLayout {
+                                            padding-left: 10px;
+                                            padding-right: 8px;
+                                            spacing: 8px;
+                                            Text { text: row; color: #4d3a8a; font-size: 11px; font-weight: 650; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
+                                            GhostButton { width: 54px; height: 28px; label: "Copy"; clicked => { root.request-copy-ai-command(index); } }
+                                        }
                                     }
                                 }
                             }
