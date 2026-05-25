@@ -61,6 +61,10 @@ Acceptance:
 
 The app should be task-flow driven, not page-list driven.
 
+The full visual design contract lives in [UI_DESIGN_SPEC.md](UI_DESIGN_SPEC.md).
+UI implementation must follow that file for window size, typography, colors,
+spacing, animation, component behavior and Computer Use QA.
+
 Primary navigation:
 
 - `Dashboard`: connection, detected chip, permissions, current session health
