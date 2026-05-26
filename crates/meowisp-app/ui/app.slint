@@ -19,8 +19,18 @@ component PrimaryButton inherits Rectangle {
     border-width: 1px;
     border-color: root.enabled ? root.accent.darker(0.18) : #d9e1ea;
 
-    animate background { duration: 120ms; easing: ease; }
-    animate opacity { duration: 160ms; easing: ease; }
+    animate background { duration: 90ms; easing: ease-out; }
+    animate border-color { duration: 90ms; easing: ease-out; }
+    animate opacity { duration: 120ms; easing: ease-out; }
+
+    Rectangle {
+        height: 100%;
+        width: parent.width;
+        border-radius: root.border-radius;
+        background: #ffffff;
+        opacity: touch.has-hover && root.enabled ? 0.08 : 0.0;
+        animate opacity { duration: 90ms; easing: ease-out; }
+    }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -57,8 +67,9 @@ component GhostButton inherits Rectangle {
     border-width: 1px;
     border-color: #d7dde5;
 
-    animate background { duration: 120ms; easing: ease; }
-    animate opacity { duration: 160ms; easing: ease; }
+    animate background { duration: 90ms; easing: ease-out; }
+    animate border-color { duration: 90ms; easing: ease-out; }
+    animate opacity { duration: 120ms; easing: ease-out; }
 
     touch := TouchArea {
         enabled: root.enabled;
@@ -77,6 +88,133 @@ component GhostButton inherits Rectangle {
     }
 }
 
+component MenuButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active: false;
+    callback clicked;
+
+    height: 28px;
+    border-radius: 7px;
+    background: touch.pressed
+        ? #d7ece5
+        : root.active
+            ? #e3f3ed
+            : touch.has-hover
+                ? #f3f8f6
+                : #ffffff;
+    border-width: 1px;
+    border-color: root.active ? #b7d8ce : touch.has-hover ? #cfd9e2 : #d7dde5;
+
+    animate background { duration: 85ms; easing: ease-out; }
+    animate border-color { duration: 85ms; easing: ease-out; }
+
+    touch := TouchArea {
+        clicked => { root.clicked(); }
+        mouse-cursor: pointer;
+    }
+
+    Rectangle {
+        y: parent.height - 3px;
+        x: 8px;
+        width: root.active ? parent.width - 16px : touch.has-hover ? parent.width - 24px : 0px;
+        height: 2px;
+        border-radius: 1px;
+        background: #23906f;
+        opacity: root.active || touch.has-hover ? 1.0 : 0.0;
+        animate width { duration: 110ms; easing: ease-out; }
+        animate opacity { duration: 90ms; easing: ease-out; }
+    }
+
+    Text {
+        text: root.label;
+        color: root.active ? #123f35 : #334155;
+        font-size: 12px;
+        font-weight: root.active ? 760 : 650;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+component HoverRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> active: false;
+    in property <brush> active-fill: #e9f4f0;
+    in property <brush> idle-fill: #f8fafc;
+    in property <brush> text-color: #334155;
+
+    height: 32px;
+    border-radius: 6px;
+    background: root.active ? root.active-fill : touch.has-hover ? #ffffff : root.idle-fill;
+    border-width: 1px;
+    border-color: root.active ? #b7d8ce : touch.has-hover ? #cbd5e1 : #e2e8f0;
+
+    animate background { duration: 85ms; easing: ease-out; }
+    animate border-color { duration: 85ms; easing: ease-out; }
+
+    touch := TouchArea { mouse-cursor: pointer; }
+
+    Rectangle {
+        width: root.active ? 3px : touch.has-hover ? 2px : 0px;
+        height: parent.height - 10px;
+        x: 5px;
+        y: 5px;
+        border-radius: 2px;
+        background: #23906f;
+        opacity: root.active || touch.has-hover ? 1.0 : 0.0;
+        animate width { duration: 90ms; easing: ease-out; }
+        animate opacity { duration: 90ms; easing: ease-out; }
+    }
+
+    Text {
+        text: root.label;
+        color: root.active ? #123f35 : root.text-color;
+        font-size: 11px;
+        font-weight: root.active ? 720 : 650;
+        x: root.active || touch.has-hover ? 13px : 10px;
+        vertical-alignment: center;
+        overflow: elide;
+        animate x { duration: 80ms; easing: ease-out; }
+    }
+}
+
+component CommandRow inherits Rectangle {
+    in property <string> label;
+    callback copy;
+
+    height: 36px;
+    border-radius: 6px;
+    background: touch.has-hover ? #f1edff : #f7f4ff;
+    border-width: 1px;
+    border-color: touch.has-hover ? #cfc4f2 : #ded6f5;
+
+    animate background { duration: 85ms; easing: ease-out; }
+    animate border-color { duration: 85ms; easing: ease-out; }
+
+    touch := TouchArea { mouse-cursor: pointer; }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 8px;
+        spacing: 8px;
+        Text {
+            text: root.label;
+            color: #4d3a8a;
+            font-size: 11px;
+            font-weight: 650;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+        GhostButton {
+            width: 54px;
+            height: 28px;
+            label: "Copy";
+            clicked => { root.copy(); }
+        }
+    }
+}
+
 component Panel inherits Rectangle {
     in property <string> title;
     in property <string> subtitle: "";
@@ -86,6 +224,8 @@ component Panel inherits Rectangle {
     border-width: 1px;
     border-color: #dde3ea;
     clip: true;
+
+    animate border-color { duration: 120ms; easing: ease-out; }
 
     VerticalLayout {
         padding: 16px;
@@ -125,6 +265,9 @@ component StatusPill inherits Rectangle {
     background: root.fill;
     border-width: 1px;
     border-color: root.fill.darker(0.08);
+
+    animate background { duration: 140ms; easing: ease-out; }
+    animate border-color { duration: 140ms; easing: ease-out; }
 
     Text {
         text: root.label;
@@ -291,12 +434,12 @@ export component AppWindow inherits Window {
                             overflow: elide;
                         }
 
-                        GhostButton { width: 58px; height: 28px; label: "Flash"; accent: root.active-page == 1 || root.active-page == 0 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 1; } }
-                        GhostButton { width: 64px; height: 28px; label: "Project"; accent: root.active-page == 4 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 4; } }
-                        GhostButton { width: 62px; height: 28px; label: "Config"; accent: root.active-page == 3 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 3; } }
-                        GhostButton { width: 62px; height: 28px; label: "Memory"; accent: root.active-page == 2 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 2; } }
-                        GhostButton { width: 62px; height: 28px; label: "Catalog"; accent: root.active-page == 5 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 5; } }
-                        GhostButton { width: 44px; height: 28px; label: "AI"; accent: root.active-page == 6 ? #e9f4f0 : #ffffff; clicked => { root.active-page = 6; } }
+                        MenuButton { width: 58px; label: "Flash"; active: root.active-page == 1 || root.active-page == 0; clicked => { root.active-page = 1; } }
+                        MenuButton { width: 64px; label: "Project"; active: root.active-page == 4; clicked => { root.active-page = 4; } }
+                        MenuButton { width: 62px; label: "Config"; active: root.active-page == 3; clicked => { root.active-page = 3; } }
+                        MenuButton { width: 62px; label: "Memory"; active: root.active-page == 2; clicked => { root.active-page = 2; } }
+                        MenuButton { width: 62px; label: "Catalog"; active: root.active-page == 5; clicked => { root.active-page = 5; } }
+                        MenuButton { width: 44px; label: "AI"; active: root.active-page == 6; clicked => { root.active-page = 6; } }
 
                         Rectangle { horizontal-stretch: 1; background: transparent; }
 
@@ -411,27 +554,16 @@ export component AppWindow inherits Window {
 
                                     VerticalLayout {
                                         spacing: 8px;
-                                        for step[index] in root.flash-plan-steps: Rectangle {
-                                            height: 32px;
-                                            border-radius: 6px;
-                                            background: root.flash-plan-risks[index] == "destructive" ? #fff7e8 : root.flash-plan-risks[index] == "write" ? #effaf4 : #f8fafc;
-                                            border-width: 1px;
-                                            border-color: root.flash-plan-risks[index] == "destructive" ? #f0d19d : #e2e8f0;
-                                            HorizontalLayout {
-                                                padding-left: 10px;
-                                                padding-right: 10px;
-                                                spacing: 8px;
-                                                Text { text: step; color: #1f2937; font-size: 11px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
-                                                Text { text: root.flash-plan-risks[index]; color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : root.flash-plan-risks[index] == "write" ? #16614d : #64748b; font-size: 10px; vertical-alignment: center; }
-                                            }
+                                        for step[index] in root.flash-plan-steps: HoverRow {
+                                            label: step + " · " + root.flash-plan-risks[index];
+                                            active: false;
+                                            idle-fill: root.flash-plan-risks[index] == "destructive" ? #fff7e8 : root.flash-plan-risks[index] == "write" ? #effaf4 : #f8fafc;
+                                            text-color: root.flash-plan-risks[index] == "destructive" ? #8b5a16 : #334155;
                                         }
-                                        if root.flash-plan-steps.length == 0: Rectangle {
+                                        if root.flash-plan-steps.length == 0: HoverRow {
                                             height: 44px;
-                                            border-radius: 6px;
-                                            background: #f8fafc;
-                                            border-width: 1px;
-                                            border-color: #e2e8f0;
-                                            Text { text: "Select firmware to build a guarded plan."; color: #64748b; font-size: 12px; x: 12px; vertical-alignment: center; overflow: elide; }
+                                            label: "Select firmware to build a guarded plan.";
+                                            text-color: #64748b;
                                         }
                                         Rectangle {
                                             height: 58px;
@@ -439,11 +571,25 @@ export component AppWindow inherits Window {
                                             background: #f8fafc;
                                             border-width: 1px;
                                             border-color: #e2e8f0;
-                                            VerticalLayout {
-                                                padding: 10px;
-                                                spacing: 3px;
-                                                Text { text: root.log-title; color: #16202e; font-size: 12px; font-weight: 760; overflow: elide; }
-                                                Text { text: root.log-text; color: #64748b; font-size: 10px; overflow: elide; }
+                                            animate background { duration: 120ms; easing: ease-out; }
+                                            HorizontalLayout {
+                                                padding-left: 10px;
+                                                padding-right: 10px;
+                                                spacing: 8px;
+
+                                                Rectangle {
+                                                    width: 4px;
+                                                    height: parent.height - 20px;
+                                                    border-radius: 2px;
+                                                    background: root.busy ? #f1a947 : root.show-error ? #a64f4f : root.show-success ? #23906f : #94a3b8;
+                                                    y: 10px;
+                                                    animate background { duration: 140ms; easing: ease-out; }
+                                                }
+                                                VerticalLayout {
+                                                    spacing: 3px;
+                                                    Text { text: root.log-title; color: #16202e; font-size: 12px; font-weight: 760; overflow: elide; }
+                                                    Text { text: root.log-text; color: #64748b; font-size: 10px; overflow: elide; }
+                                                }
                                             }
                                         }
                                     }
@@ -464,14 +610,7 @@ export component AppWindow inherits Window {
                                 subtitle: "Memory map";
                                 VerticalLayout {
                                     spacing: 7px;
-                                    for row in ["Code flash", "Data flash", "Config", "Bootloader"]: Rectangle {
-                                        height: 34px;
-                                        border-radius: 6px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
-                                    }
+                                    for row in ["Code flash", "Data flash", "Config", "Bootloader"]: HoverRow { height: 34px; label: row; }
                                 }
                             }
                             Panel {
@@ -502,14 +641,7 @@ export component AppWindow inherits Window {
                                 subtitle: root.catalog-config-rows.length + " rows";
                                 ListView {
                                     vertical-stretch: 1;
-                                    for row[index] in root.catalog-config-rows: Rectangle {
-                                        height: 32px;
-                                        border-radius: 6px;
-                                        background: index == 0 ? #e9f4f0 : #f8fafc;
-                                        border-width: 1px;
-                                        border-color: index == 0 ? #c8ded6 : #e2e8f0;
-                                        Text { text: row; color: index == 0 ? #123f35 : #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
-                                    }
+                                    for row[index] in root.catalog-config-rows: HoverRow { label: row; active: index == 0; }
                                 }
                             }
                             Panel {
@@ -518,13 +650,9 @@ export component AppWindow inherits Window {
                                 subtitle: root.config-selected-subtitle;
                                 VerticalLayout {
                                     spacing: 8px;
-                                    for row in root.config-field-rows: Rectangle {
-                                        height: 34px;
-                                        border-radius: 6px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
+                                    ListView {
+                                        vertical-stretch: 1;
+                                        for row in root.config-field-rows: HoverRow { height: 34px; label: row; }
                                     }
                                     HorizontalLayout {
                                         spacing: 8px;
@@ -556,14 +684,7 @@ export component AppWindow inherits Window {
                                     enabled: !root.busy;
                                     clicked => { root.request-open-project(); }
                                 }
-                                for row in root.project-summary-rows: Rectangle {
-                                    height: 34px;
-                                    border-radius: 6px;
-                                    background: #f8fafc;
-                                    border-width: 1px;
-                                    border-color: #e2e8f0;
-                                    Text { text: row; color: #334155; font-size: 12px; font-weight: 650; x: 10px; vertical-alignment: center; overflow: elide; }
-                                }
+                                for row in root.project-summary-rows: HoverRow { height: 34px; label: row; }
                             }
                         }
 
@@ -577,30 +698,18 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 alignment: start;
                                 spacing: 10px;
-                                for row[index] in root.project-plan-rows: Rectangle {
+                                for row[index] in root.project-plan-rows: HoverRow {
                                     height: 34px;
-                                    border-radius: 6px;
-                                    background: root.project-plan-kinds[index] == "blocked" ? #fff7e8 : root.project-plan-kinds[index] == "ready" ? #effaf4 : #f8fafc;
-                                    border-width: 1px;
-                                    border-color: root.project-plan-kinds[index] == "blocked" ? #f0d19d : #e2e8f0;
-                                    Text { text: row; color: root.project-plan-kinds[index] == "blocked" ? #8b5a16 : #334155; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                    label: row;
+                                    idle-fill: root.project-plan-kinds[index] == "blocked" ? #fff7e8 : root.project-plan-kinds[index] == "ready" ? #effaf4 : #f8fafc;
+                                    text-color: root.project-plan-kinds[index] == "blocked" ? #8b5a16 : #334155;
                                 }
-                                if root.project-plan-rows.length == 0: Rectangle {
+                                if root.project-plan-rows.length == 0: HoverRow {
                                     height: 34px;
-                                    border-radius: 6px;
-                                    background: #f8fafc;
-                                    border-width: 1px;
-                                    border-color: #e2e8f0;
-                                    Text { text: "Open a project file to create a guarded plan."; color: #64748b; font-size: 12px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
+                                    label: "Open a project file to create a guarded plan.";
+                                    text-color: #64748b;
                                 }
-                                for row in root.project-issue-rows: Rectangle {
-                                    height: 30px;
-                                    border-radius: 6px;
-                                    background: #fff7e8;
-                                    border-width: 1px;
-                                    border-color: #f0d19d;
-                                    Text { text: row; color: #8b5a16; font-size: 11px; font-weight: 650; x: 12px; vertical-alignment: center; overflow: elide; }
-                                }
+                                for row in root.project-issue-rows: HoverRow { height: 30px; label: row; idle-fill: #fff7e8; text-color: #8b5a16; }
                                 StatusPill {
                                     width: 128px;
                                     label: root.project-plan-status == "ready" ? "PROJECT READY" : "PROJECT BLOCKED";
@@ -642,10 +751,11 @@ export component AppWindow inherits Window {
                                     for family[index] in root.catalog-family-names: Rectangle {
                                         height: 42px;
                                         border-radius: 6px;
-                                        background: family-touch.has-hover ? #f1f5f9 : #ffffff;
+                                        background: family-touch.has-hover ? #ffffff : #f8fafc;
                                         border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        animate background { duration: 120ms; easing: ease; }
+                                        border-color: family-touch.has-hover ? #cbd5e1 : #e2e8f0;
+                                        animate background { duration: 85ms; easing: ease-out; }
+                                        animate border-color { duration: 85ms; easing: ease-out; }
                                         family-touch := TouchArea { mouse-cursor: pointer; }
                                         VerticalLayout {
                                             padding: 9px;
@@ -664,14 +774,7 @@ export component AppWindow inherits Window {
 
                                 ListView {
                                     vertical-stretch: 1;
-                                    for row in root.catalog-variant-rows: Rectangle {
-                                        height: 30px;
-                                        border-radius: 5px;
-                                        background: #f8fafc;
-                                        border-width: 1px;
-                                        border-color: #e2e8f0;
-                                        Text { text: row; color: #334155; font-size: 11px; font-weight: 600; x: 10px; vertical-alignment: center; overflow: elide; }
-                                    }
+                                    for row in root.catalog-variant-rows: HoverRow { height: 30px; label: row; }
                                 }
                             }
 
@@ -697,22 +800,9 @@ export component AppWindow inherits Window {
                                 width: 300px;
                                 title: "AI Commands";
                                 subtitle: "Available now";
-                                VerticalLayout {
-                                    spacing: 8px;
-                                    for row[index] in root.ai-command-rows: Rectangle {
-                                        height: 36px;
-                                        border-radius: 6px;
-                                        background: #f7f4ff;
-                                        border-width: 1px;
-                                        border-color: #ded6f5;
-                                        HorizontalLayout {
-                                            padding-left: 10px;
-                                            padding-right: 8px;
-                                            spacing: 8px;
-                                            Text { text: row; color: #4d3a8a; font-size: 11px; font-weight: 650; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
-                                            GhostButton { width: 54px; height: 28px; label: "Copy"; clicked => { root.request-copy-ai-command(index); } }
-                                        }
-                                    }
+                                ListView {
+                                    vertical-stretch: 1;
+                                    for row[index] in root.ai-command-rows: CommandRow { label: row; copy => { root.request-copy-ai-command(index); } }
                                 }
                             }
                         }
